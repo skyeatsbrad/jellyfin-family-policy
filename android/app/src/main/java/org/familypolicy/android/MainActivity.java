@@ -483,7 +483,6 @@ public final class MainActivity extends Activity {
             ratingSpinner.setEnabled(false);
         }
         requestNotificationPermission();
-        loadMediaPage();
         maybeRunPendingUpdateCheck();
     }
 
