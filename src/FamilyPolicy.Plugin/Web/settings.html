@@ -1,6 +1,28 @@
 <!doctype html>
 <html lang="en"><head><title>Family Policy</title></head><body>
 <div id="familyPolicyPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button">
+<style>
+#familyPolicyPage .content-primary,#familyPolicyPage fieldset{min-width:0}
+#familyPolicyPage fieldset{box-sizing:border-box;margin:1rem 0;padding:.75rem}
+#familyPolicyPage label{display:block;margin:.75rem 0 .25rem}
+#familyPolicyPage input:not([type="checkbox"]),#familyPolicyPage textarea{box-sizing:border-box;width:100%;max-width:100%}
+#fpAccount,#fpKind,#fpAgeCeiling,#fpMedia{box-sizing:border-box;width:100%;max-width:100%}
+#familyPolicyPage button{background:rgba(127,127,127,.22);border:1px solid rgba(127,127,127,.5);border-radius:.25rem;color:inherit;margin:.25rem .5rem .5rem 0;padding:.65rem .9rem}
+#familyPolicyPage button:disabled{opacity:.45}
+.fpToolbar{display:flex;flex-wrap:wrap;gap:.75rem;align-items:end}.fpToolbar label{display:flex;flex-direction:column;gap:.25rem;margin:0}
+.fpMatrixScroll{overflow:auto;width:100%;max-width:100%;min-width:0;box-sizing:border-box;max-height:70vh;margin:.75rem 0;border:1px solid rgba(255,255,255,.18)}
+#fpMatrix{border-collapse:collapse;min-width:max-content;width:100%}#fpMatrix th,#fpMatrix td{padding:.5rem;border-bottom:1px solid rgba(255,255,255,.12);text-align:left}
+#fpMatrix th{position:sticky;top:0;z-index:2;background:var(--theme-background-level-1,#202020)}
+#fpMatrix th:first-child,#fpMatrix td:first-child{position:sticky;left:0;z-index:1;background:var(--theme-background-level-1,#202020);min-width:15rem}
+#fpMatrix th:first-child{z-index:3}.fpMatrixTitle small{display:block;opacity:.7}.fpMatrixState{min-width:7.5rem}
+.fpMatrixPager{display:flex;gap:.75rem;align-items:center;justify-content:space-between;margin-top:.75rem}
+@media(max-width:600px){
+  #familyPolicyPage{font-size:1rem}
+  #fpPg,#fpAdd,#fpFind,#fpLabels,#fpPreview,#fpMatrixLoad,#fpMatrixApply,#fpSave,#fpRestore,#fpReload{display:block;width:100%;margin:.5rem 0}
+  .fpToolbar{align-items:stretch;flex-direction:column}.fpToolbar label{width:100%}.fpToolbar select{width:100%}
+  #fpMatrix th,#fpMatrix td{padding:.4rem}#fpMatrix th:first-child,#fpMatrix td:first-child{min-width:11rem}.fpMatrixState{min-width:6.5rem}
+}
+</style>
 <div data-role="content"><div class="content-primary">
 <h1>Family Policy <small>Experimental preview</small></h1>
 <p>Choose boundaries, then make exceptions. An independent health guard must supervise each managed account. Device buffering can outlast a server cutoff.</p>
@@ -19,7 +41,7 @@
 <label for="fpAgeCeiling">Age-band maximum rating</label><select id="fpAgeCeiling"><option value="10">PG / TV-PG</option><option value="13">PG-13</option><option value="14">TV-14</option><option value="17">R / TV-MA</option></select>
 <label for="fpStart">From</label><input id="fpStart" type="time" value="08:00">
 <label for="fpEnd">Until</label><input id="fpEnd" type="time" value="18:00">
-<p>Morning exceptions run from midnight until “From”. Content permission and time permission are independent.</p>
+<p>Morning exceptions run from midnight until "From". Content permission and time permission are independent.</p>
 <button is="emby-button" id="fpAdd">Add rule</button>
 <div id="fpRules"></div></fieldset>
 <fieldset><legend>Review a title</legend>
@@ -29,106 +51,293 @@
 <label for="fpSubject">Parent-confirmed subjects</label><input id="fpSubject" placeholder="Soccer">
 <label for="fpFranchise">Parent-confirmed franchises</label><input id="fpFranchise" placeholder="Star Wars">
 <button is="emby-button" id="fpLabels">Save confirmed labels</button>
-<button is="emby-button" id="fpPreview">Explain this title’s access</button>
+<button is="emby-button" id="fpPreview">Explain this title's access</button>
 <pre id="fpExplanation" style="white-space:pre-wrap"></pre>
 <p>Only labels confirmed here affect exceptions. Downloaded metadata tags and AI suggestions cannot grant access.</p>
 </fieldset>
+<fieldset class="fpMatrixFieldset"><legend>Full library access matrix</legend>
+<p>Inherit keeps the account's rating, schedule, franchise, category, and other rules. Allow or Deny adds a direct title exception. Series decisions flow to episodes unless an episode has its own exception.</p>
+<div class="fpToolbar">
+<label for="fpMatrixTypes">Media<select id="fpMatrixTypes"><option value="Movie,Series">Movies and shows</option><option value="Movie">Movies</option><option value="Series">Shows</option><option value="Episode">Episodes</option><option value="Video,Audio">Other video and audio</option><option value="Movie,Series,Episode,Video,Audio">All supported media</option></select></label>
+<label for="fpMatrixSearch">Filter<input id="fpMatrixSearch" placeholder="Title"></label>
+<label for="fpMatrixLimit">Rows<select id="fpMatrixLimit"><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
+<button is="emby-button" id="fpMatrixLoad">Load</button>
+</div>
+<div class="fpMatrixPager"><button is="emby-button" id="fpMatrixPrev">Previous</button><span id="fpMatrixStatus">Not loaded</span><button is="emby-button" id="fpMatrixNext">Next</button></div>
+<div class="fpMatrixScroll"><table id="fpMatrix"><thead id="fpMatrixHead"></thead><tbody id="fpMatrixBody"></tbody></table></div>
+<button is="emby-button" id="fpMatrixApply" disabled>Apply matrix changes</button> <span id="fpMatrixDirty">No pending matrix changes.</span>
+</fieldset>
 <details><summary>Advanced policy JSON</summary><label for="fpPolicy">Policy</label><textarea id="fpPolicy" rows="20" style="width:100%;font-family:monospace"></textarea></details>
-<button is="emby-button" id="fpSave">Apply policy</button><button is="emby-button" id="fpRestore">Restore original account policy</button>
+<button is="emby-button" id="fpSave">Apply policy</button><button is="emby-button" id="fpRestore">Restore original account policy</button><button is="emby-button" id="fpReload">Discard drafts and reload</button>
 <p id="fpResult" role="status" aria-live="polite"></p>
 <script>
 (function () {
-    let revision = 0, accounts = [], labels = {}, ruleCounter = 0;
+    let revision = 0, accounts = [], labels = {}, users = [], activeAccountId = '', ruleCounter = 0;
+    let matrixItems = [], matrixTotal = 0, matrixStart = 0;
+    const drafts = new Map(), dirty = new Set(), matrixDirty = new Set();
     const el = id => document.getElementById(id);
+    const copy = value => JSON.parse(JSON.stringify(value));
+    const normalized = value => String(value || '').replaceAll('-', '').toLowerCase();
+    const sameId = (first, second) => normalized(first) === normalized(second);
     const preset = () => ({ SchemaVersion: 1, TimeZone: 'UTC', DefaultContentAllowed: false, DefaultTimeAllowed: true,
         Rules: [{ Id: 'pg-default', Dimension: 'Content', Effect: 'Allow', Priority: 0, When: { Field: 'RatingAtMost', Number: 10 } }] });
     function call(path, method = 'GET', data) {
         return ApiClient.ajax({ url: ApiClient.getUrl('FamilyPolicy/' + path), type: method, dataType: 'json',
             contentType: 'application/json', data: data === undefined ? undefined : JSON.stringify(data) });
     }
-    function current() { const policy = JSON.parse(el('fpPolicy').value); policy.TimeZone = el('fpZone').value.trim(); policy.AgeYears = el('fpAge').value === '' ? null : Number(el('fpAge').value); return policy; }
-    function write(policy) { el('fpPolicy').value = JSON.stringify(policy, null, 2); render(policy); }
+    function account(id) { return accounts.find(a => sameId(a.UserId, id)); }
+    function user(id) { return users.find(u => sameId(u.Id, id)); }
+    function isManaged(id) { return Boolean(account(id)); }
+    function draft(id) {
+        if (!drafts.has(normalized(id))) drafts.set(normalized(id), copy(account(id)?.Policy || preset()));
+        return drafts.get(normalized(id));
+    }
+    function setDraft(id, policy, fromMatrix) {
+        drafts.set(normalized(id), copy(policy)); dirty.add(normalized(id));
+        if (fromMatrix) matrixDirty.add(normalized(id));
+        updateMatrixDirty();
+    }
+    function current() {
+        const policy = JSON.parse(el('fpPolicy').value);
+        policy.TimeZone = el('fpZone').value.trim();
+        policy.AgeYears = el('fpAge').value === '' ? null : Number(el('fpAge').value);
+        return policy;
+    }
+    function write(policy, markDirty = false) {
+        el('fpPolicy').value = JSON.stringify(policy, null, 2); render(policy);
+        if (markDirty && activeAccountId) setDraft(activeAccountId, policy, false);
+    }
+    function isSimpleTitleRule(rule) {
+        return (!rule.Dimension || rule.Dimension === 'Content' || rule.Dimension === 0) && rule.When?.Field === 'Title' && Array.isArray(rule.When.Values);
+    }
+    function matrixEffect(rule) {
+        if (!isSimpleTitleRule(rule)) return null;
+        if (rule.Id?.startsWith('matrix-title-allow-')) return 'allow';
+        if (rule.Id?.startsWith('matrix-title-deny-')) return 'deny';
+        return null;
+    }
+    function titleState(policy, itemId) {
+        const now = Date.now();
+        const hits = (policy.Rules || []).filter(rule => isSimpleTitleRule(rule) && rule.Enabled !== false &&
+            (!rule.ExpiresAt || Date.parse(rule.ExpiresAt) > now) && rule.When.Values.some(value => sameId(value, itemId)));
+        if (!hits.length) return 'inherit';
+        const priority = Math.max(...hits.map(rule => Number(rule.Priority || 0)));
+        return hits.some(rule => Number(rule.Priority || 0) === priority && (rule.Effect || 'Deny') === 'Deny') ? 'deny' : 'allow';
+    }
+    function setTitleState(policy, itemId, state) {
+        const updated = copy(policy), allow = new Set(), deny = new Set(), rules = [];
+        for (const rule of updated.Rules || []) {
+            const effect = matrixEffect(rule);
+            if (effect) {
+                for (const value of rule.When.Values) if (!sameId(value, itemId)) (effect === 'allow' ? allow : deny).add(normalized(value));
+                continue;
+            }
+            if (isSimpleTitleRule(rule) && rule.When.Values.some(value => sameId(value, itemId))) {
+                const values = rule.When.Values.filter(value => !sameId(value, itemId));
+                if (values.length) rules.push({ ...rule, When: { ...rule.When, Values: values } });
+            } else rules.push(rule);
+        }
+        for (const value of deny) allow.delete(value);
+        allow.delete(normalized(itemId)); deny.delete(normalized(itemId));
+        if (state === 'allow') allow.add(normalized(itemId));
+        if (state === 'deny') deny.add(normalized(itemId));
+        function append(effect, values) {
+            const sorted = Array.from(values).sort();
+            for (let start = 0, chunk = 1; start < sorted.length; start += 128, chunk++) {
+                rules.push({ Id: 'matrix-title-' + effect.toLowerCase() + '-' + String(chunk).padStart(3, '0'), Dimension: 'Content',
+                    Effect: effect, Priority: 100, When: { Field: 'Title', Values: sorted.slice(start, start + 128) } });
+            }
+        }
+        append('Allow', allow); append('Deny', deny);
+        if (rules.length > 256) throw new Error('This policy would exceed the 256-rule limit.');
+        updated.Rules = rules;
+        return updated;
+    }
     function render(policy) {
         el('fpRules').replaceChildren();
-        policy.Rules.forEach((rule, index) => {
+        (policy.Rules || []).forEach((rule, index) => {
             const row = document.createElement('p'), description = document.createElement('span'), remove = document.createElement('button');
-            description.textContent = rule.Id + ': ' + rule.Effect + ' ' + rule.Dimension + ' (priority ' + rule.Priority + ') ';
+            const matrix = matrixEffect(rule);
+            description.textContent = matrix ? 'Matrix: ' + rule.Effect + ' ' + rule.When.Values.length + ' direct title(s) ' :
+                rule.Id + ': ' + (rule.Effect || 'Deny') + ' ' + (rule.Dimension || 'Content') + ' (priority ' + Number(rule.Priority || 0) + ') ';
             remove.type = 'button'; remove.textContent = 'Remove';
-            remove.addEventListener('click', () => { const p = current(); p.Rules.splice(index, 1); write(p); });
+            remove.addEventListener('click', () => { const policyDraft = current(); policyDraft.Rules.splice(index, 1); write(policyDraft, true); renderMatrix(); });
             row.append(description, remove); el('fpRules').append(row);
         });
     }
     function show() {
-        const account = accounts.find(a => a.UserId.replaceAll('-', '') === el('fpAccount').value.replaceAll('-', ''));
-        const policy = account ? account.Policy : preset(); el('fpZone').value = policy.TimeZone; el('fpAge').value = policy.AgeYears ?? ''; write(policy);
+        if (!activeAccountId) return;
+        const policy = draft(activeAccountId);
+        el('fpZone').value = policy.TimeZone || 'UTC'; el('fpAge').value = policy.AgeYears ?? ''; write(policy);
     }
-    async function load() { const state = await call('State'); revision = state.Revision; accounts = state.Accounts; labels = state.Labels || {}; show(); }
+    async function refreshState(resetIds = new Set(), preserveDirty = true) {
+        const state = await call('State'); revision = state.Revision; accounts = state.Accounts; labels = state.Labels || {};
+        for (const entry of users) {
+            const key = normalized(entry.Id);
+            if (!preserveDirty || resetIds.has(key) || !dirty.has(key)) {
+                drafts.set(key, copy(account(entry.Id)?.Policy || preset())); dirty.delete(key); matrixDirty.delete(key);
+            }
+        }
+        show(); renderMatrix(); updateMatrixDirty();
+    }
     function note(message) { el('fpResult').textContent = message; }
+    function updateMatrixDirty() {
+        const count = matrixDirty.size;
+        el('fpMatrixApply').disabled = count === 0;
+        el('fpMatrixDirty').textContent = count ? count + ' account draft' + (count === 1 ? '' : 's') + ' changed by the matrix.' : 'No pending matrix changes.';
+    }
+    function mediaLabel(item) {
+        const prefix = item.Type === 'Episode' && item.SeriesName ? item.SeriesName + ' - ' : '';
+        const year = item.ProductionYear ? ' (' + item.ProductionYear + ')' : '';
+        return { title: prefix + item.Name + year, detail: item.Type };
+    }
+    function renderMatrix() {
+        const head = el('fpMatrixHead'), body = el('fpMatrixBody'); head.replaceChildren(); body.replaceChildren();
+        const header = document.createElement('tr'), title = document.createElement('th'); title.textContent = 'Title'; header.append(title);
+        for (const entry of users) {
+            const cell = document.createElement('th'); cell.textContent = entry.Name + (isManaged(entry.Id) ? '' : ' (set up first)'); header.append(cell);
+        }
+        head.append(header);
+        if (!matrixItems.length) {
+            const row = document.createElement('tr'), cell = document.createElement('td'); cell.colSpan = users.length + 1; cell.textContent = 'No titles loaded.'; row.append(cell); body.append(row); return;
+        }
+        for (const item of matrixItems) {
+            const row = document.createElement('tr'), heading = document.createElement('td'), label = mediaLabel(item), name = document.createElement('span'), detail = document.createElement('small');
+            heading.className = 'fpMatrixTitle'; name.textContent = label.title; detail.textContent = label.detail; heading.append(name, detail); row.append(heading);
+            row.dataset.itemName = item.Name; row.dataset.itemId = item.Id;
+            for (const entry of users) {
+                const cell = document.createElement('td'), select = document.createElement('select');
+                select.className = 'fpMatrixState'; select.dataset.userName = entry.Name; select.dataset.userId = entry.Id; select.dataset.itemId = item.Id;
+                if (!isManaged(entry.Id)) {
+                    const option = document.createElement('option'); option.value = 'inherit'; option.textContent = 'Not managed'; select.append(option); select.disabled = true;
+                } else {
+                    for (const value of ['inherit', 'allow', 'deny']) {
+                        const option = document.createElement('option'); option.value = value; option.textContent = value[0].toUpperCase() + value.slice(1); select.append(option);
+                    }
+                    select.value = titleState(draft(entry.Id), item.Id);
+                    select.addEventListener('change', () => {
+                        try {
+                            const policy = setTitleState(draft(entry.Id), item.Id, select.value); setDraft(entry.Id, policy, true);
+                            if (sameId(activeAccountId, entry.Id)) { el('fpZone').value = policy.TimeZone || 'UTC'; el('fpAge').value = policy.AgeYears ?? ''; write(policy); }
+                            note('Matrix change added to the draft. Apply matrix changes when ready.');
+                        } catch (error) { select.value = titleState(draft(entry.Id), item.Id); note(error.message || 'Matrix change failed.'); }
+                    });
+                }
+                cell.append(select); row.append(cell);
+            }
+            body.append(row);
+        }
+    }
+    async function loadMatrix() {
+        try {
+            el('fpMatrixStatus').textContent = 'Loading...';
+            const limit = Number(el('fpMatrixLimit').value);
+            const options = { Recursive: true, IncludeItemTypes: el('fpMatrixTypes').value, StartIndex: matrixStart, Limit: limit,
+                SortBy: 'SortName', SortOrder: 'Ascending', Fields: 'ProductionYear,SeriesName' };
+            const search = el('fpMatrixSearch').value.trim(); if (search) options.SearchTerm = search;
+            const result = await ApiClient.getItems(ApiClient.getCurrentUserId(), options);
+            matrixItems = result.Items || []; matrixTotal = Number(result.TotalRecordCount ?? matrixItems.length);
+            const end = Math.min(matrixStart + matrixItems.length, matrixTotal);
+            el('fpMatrixStatus').textContent = matrixTotal ? (matrixStart + 1) + '-' + end + ' of ' + matrixTotal : 'No matching titles';
+            el('fpMatrixPrev').disabled = matrixStart === 0; el('fpMatrixNext').disabled = matrixStart + limit >= matrixTotal;
+            renderMatrix();
+        } catch { matrixItems = []; matrixTotal = 0; renderMatrix(); el('fpMatrixStatus').textContent = 'Library matrix failed to load.'; }
+    }
+    function updateActiveDraft() {
+        try { const policy = current(); setDraft(activeAccountId, policy, false); render(policy); renderMatrix(); }
+        catch { note('Invalid policy JSON.'); }
+    }
     el('familyPolicyPage').addEventListener('pageshow', async () => {
         try {
-            const users = await ApiClient.getUsers(); el('fpAccount').replaceChildren();
-            users.filter(u => !u.Policy.IsAdministrator).forEach(u => { const o = document.createElement('option'); o.value = u.Id; o.textContent = u.Name; el('fpAccount').append(o); });
-            await load();
+            users = (await ApiClient.getUsers()).filter(entry => !entry.Policy.IsAdministrator).sort((first, second) => first.Name.localeCompare(second.Name));
+            el('fpAccount').replaceChildren();
+            users.forEach(entry => { const option = document.createElement('option'); option.value = entry.Id; option.textContent = entry.Name; el('fpAccount').append(option); });
+            activeAccountId = el('fpAccount').value; dirty.clear(); matrixDirty.clear();
+            await refreshState(new Set(), false); matrixStart = 0; await loadMatrix();
         } catch { note('Unable to load. Administrator access is required.'); }
     });
-    el('fpAccount').addEventListener('change', show);
-    el('fpPg').addEventListener('click', () => { const p = preset(); el('fpZone').value = p.TimeZone; write(p); });
-    el('fpPolicy').addEventListener('change', () => { try { render(current()); } catch { note('Invalid policy JSON.'); } });
+    el('fpAccount').addEventListener('change', () => { activeAccountId = el('fpAccount').value; show(); });
+    el('fpPg').addEventListener('click', () => { const policy = preset(); el('fpZone').value = policy.TimeZone; write(policy, true); renderMatrix(); });
+    el('fpPolicy').addEventListener('input', updateActiveDraft);
+    el('fpZone').addEventListener('change', updateActiveDraft); el('fpAge').addEventListener('change', updateActiveDraft);
     el('fpAdd').addEventListener('click', () => {
         try {
-            const p = current(), kind = el('fpKind').value, value = el('fpValue').value.trim();
+            let policy = current(); const kind = el('fpKind').value, value = el('fpValue').value.trim();
             const rule = { Id: kind + '-' + Date.now().toString(36) + '-' + (++ruleCounter), Dimension: 'Content', Effect: 'Allow', Priority: 10 };
             const leaf = (field, values) => ({ Field: field, Values: values });
-            const window = (start, end) => ({ Field: 'Window', Window: { Start: start + ':00', End: end + ':00' } });
+            const windowRule = (start, end) => ({ Field: 'Window', Window: { Start: start + ':00', End: end + ':00' } });
             if (kind === 'unrated-subject') rule.When = { All: [{ Field: 'Unrated' }, leaf('Subject', [value])] };
             else if (kind === 'franchise') rule.When = leaf('Franchise', [value]);
             else if (kind === 'category') rule.When = leaf('Category', [value]);
             else if (kind === 'media-kind') rule.When = leaf('MediaKind', [value]);
             else if (kind === 'age') { if (!/^\d+$/.test(value)) throw new Error(); rule.When = { All: [{ Field: 'AgeAtLeast', Number: Number(value) }, { Field: 'RatingAtMost', Number: Number(el('fpAgeCeiling').value) }] }; }
             else if (kind.startsWith('title-')) {
-                if (!el('fpMedia').value) throw new Error(); rule.When = leaf('Title', [el('fpMedia').value]); rule.Priority = 100;
-                rule.Effect = kind === 'title-deny' ? 'Deny' : 'Allow';
+                if (!el('fpMedia').value) throw new Error(); policy = setTitleState(policy, el('fpMedia').value, kind === 'title-deny' ? 'deny' : 'allow');
+                write(policy, true); renderMatrix(); note('Direct title exception added to the draft. Apply when ready.'); return;
             } else if (kind === 'hours') {
-                rule.Dimension = 'Time'; rule.Priority = 0; rule.When = window(el('fpStart').value, el('fpEnd').value); p.DefaultTimeAllowed = false;
+                rule.Dimension = 'Time'; rule.Priority = 0; rule.When = windowRule(el('fpStart').value, el('fpEnd').value); policy.DefaultTimeAllowed = false;
             } else if (kind === 'morning') {
-                rule.Dimension = 'Time'; rule.When = { All: [leaf('Category', [value]), window('00:00', el('fpStart').value)] };
+                rule.Dimension = 'Time'; rule.When = { All: [leaf('Category', [value]), windowRule('00:00', el('fpStart').value)] };
             }
-            p.Rules.push(rule); write(p); note('Rule added to draft. Apply when ready.');
+            policy.Rules.push(rule); write(policy, true); renderMatrix(); note('Rule added to draft. Apply when ready.');
         } catch { note('Choose a title or provide the required value and valid time boundaries.'); }
     });
     el('fpFind').addEventListener('click', async () => {
         try {
             const result = await ApiClient.getItems(ApiClient.getCurrentUserId(), { Recursive: true, IncludeItemTypes: 'Movie,Series,Episode,Video,Audio', SearchTerm: el('fpSearch').value, Limit: 50 });
-            el('fpMedia').replaceChildren(); result.Items.forEach(item => { const o = document.createElement('option'); o.value = item.Id; o.textContent = item.Name; el('fpMedia').append(o); });
+            el('fpMedia').replaceChildren(); result.Items.forEach(item => { const option = document.createElement('option'); option.value = item.Id; option.textContent = item.Name; el('fpMedia').append(option); });
             showLabels();
         } catch { note('Library search failed.'); }
     });
     function showLabels() {
-        const id = el('fpMedia').value.replaceAll('-', '');
-        const entry = Object.entries(labels).find(([key]) => key.replaceAll('-', '') === id)?.[1] || {};
+        const id = normalized(el('fpMedia').value);
+        const entry = Object.entries(labels).find(([key]) => normalized(key) === id)?.[1] || {};
         el('fpCategory').value = (entry.Categories || []).join(', '); el('fpSubject').value = (entry.Subjects || []).join(', '); el('fpFranchise').value = (entry.Franchises || []).join(', ');
     }
     el('fpMedia').addEventListener('change', showLabels);
     el('fpLabels').addEventListener('click', async () => {
         try {
-            const split = id => { const values = el(id).value.split(',').map(s => s.trim()).filter(Boolean); return values.length ? values : null; };
+            const split = id => { const values = el(id).value.split(',').map(value => value.trim()).filter(Boolean); return values.length ? values : null; };
             const id = el('fpMedia').value; if (!id) throw new Error();
             await call('Labels/' + id, 'PUT', { ExpectedRevision: revision, Labels: { Categories: split('fpCategory'), Subjects: split('fpSubject'), Franchises: split('fpFranchise') } });
-            const state = await call('State'); revision = state.Revision; labels = state.Labels || {}; note('Parent-confirmed labels saved. Draft rules preserved.');
-        } catch { note('Labels not saved. Reload if another administrator changed configuration.'); }
+            await refreshState(new Set(), true); note('Parent-confirmed labels saved. Draft rules preserved.');
+        } catch { note('Labels not saved. Drafts are preserved; reload if another administrator changed configuration.'); }
     });
     el('fpPreview').addEventListener('click', async () => {
-        try { const d = await call('Preview/' + el('fpMedia').value, 'POST', current());
-            el('fpExplanation').textContent = 'Content: ' + (d.ContentAllowed ? 'allowed' : 'blocked') + ' — ' + d.ContentReasons.join(', ') + '\nTime: ' + (d.TimeAllowed ? 'allowed' : 'blocked') + ' — ' + d.TimeReasons.join(', ') + '\n' + JSON.stringify(d.Rules, null, 2);
+        try { const decision = await call('Preview/' + el('fpMedia').value, 'POST', current());
+            el('fpExplanation').textContent = 'Content: ' + (decision.ContentAllowed ? 'allowed' : 'blocked') + ' - ' + decision.ContentReasons.join(', ') + '\nTime: ' + (decision.TimeAllowed ? 'allowed' : 'blocked') + ' - ' + decision.TimeReasons.join(', ') + '\n' + JSON.stringify(decision.Rules, null, 2);
         } catch { note('Preview failed. Select a title and check the draft.'); }
     });
+    el('fpMatrixLoad').addEventListener('click', async () => { matrixStart = 0; await loadMatrix(); });
+    el('fpMatrixTypes').addEventListener('change', async () => { matrixStart = 0; await loadMatrix(); });
+    el('fpMatrixLimit').addEventListener('change', async () => { matrixStart = 0; await loadMatrix(); });
+    el('fpMatrixSearch').addEventListener('keydown', async event => { if (event.key === 'Enter') { event.preventDefault(); matrixStart = 0; await loadMatrix(); } });
+    el('fpMatrixPrev').addEventListener('click', async () => { matrixStart = Math.max(0, matrixStart - Number(el('fpMatrixLimit').value)); await loadMatrix(); });
+    el('fpMatrixNext').addEventListener('click', async () => { matrixStart += Number(el('fpMatrixLimit').value); await loadMatrix(); });
+    el('fpMatrixApply').addEventListener('click', async () => {
+        const ids = Array.from(matrixDirty);
+        try {
+            const changes = ids.map(id => ({ UserId: user(id).Id, Policy: draft(id) }));
+            await call('Accounts', 'PUT', { ExpectedRevision: revision, Accounts: changes });
+            await refreshState(new Set(ids), true); note('Matrix changes applied to ' + ids.length + ' account' + (ids.length === 1 ? '' : 's') + '.');
+        } catch { note('Matrix changes were not applied. Drafts are preserved; discard and reload before retrying if another administrator changed configuration.'); }
+    });
     el('fpSave').addEventListener('click', async () => {
-        try { await call('Accounts/' + el('fpAccount').value, 'PUT', { ExpectedRevision: revision, Policy: current() }); await load(); note('Policy applied.'); }
-        catch { note('Request did not complete. Reload to inspect saved state before retrying; check policy syntax and guard coverage.'); }
+        try {
+            const policy = current(); setDraft(activeAccountId, policy, false);
+            await call('Accounts/' + activeAccountId, 'PUT', { ExpectedRevision: revision, Policy: policy });
+            await refreshState(new Set([normalized(activeAccountId)]), true); note('Policy applied.');
+        } catch { note('Request did not complete. Drafts are preserved; reload to inspect saved state before retrying.'); }
     });
     el('fpRestore').addEventListener('click', async () => {
-        try { await call('Accounts/' + el('fpAccount').value + '/Restore', 'POST', { ExpectedRevision: revision }); await load(); note('Original account policy restored.'); }
-        catch { note('Restore failed. Check server logs and reload.'); }
+        try {
+            await call('Accounts/' + activeAccountId + '/Restore', 'POST', { ExpectedRevision: revision });
+            await refreshState(new Set([normalized(activeAccountId)]), true); note('Original account policy restored.');
+        } catch { note('Restore failed. Drafts are preserved; check server logs and reload.'); }
+    });
+    el('fpReload').addEventListener('click', async () => {
+        try { dirty.clear(); matrixDirty.clear(); await refreshState(new Set(), false); note('Saved policies reloaded; local drafts were discarded.'); }
+        catch { note('Reload failed.'); }
     });
 })();
 </script></div></div></div></body></html>

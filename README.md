@@ -1,17 +1,19 @@
 # Family Policy for Jellyfin
 
-[![Build and verify](https://github.com/AnthemFlynn/jellyfin-family-policy/actions/workflows/build.yml/badge.svg?branch=family-policy)](https://github.com/AnthemFlynn/jellyfin-family-policy/actions/workflows/build.yml)
+[![Build and verify](https://github.com/skyeatsbrad/jellyfin-family-policy/actions/workflows/build.yml/badge.svg?branch=family-policy)](https://github.com/skyeatsbrad/jellyfin-family-policy/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Give children room to explore within boundaries you choose.**
 
 Family Policy adds administrator-managed content rules, individual exceptions,
-and viewing hours to Jellyfin. Start with “PG or lower”, then allow unrated soccer,
-a franchise you trust, or workout videos before normal viewing hours.
+viewing hours, and a phone-friendly full-library access matrix to Jellyfin. Start
+with “PG or lower”, then allow unrated soccer, a franchise you trust, workout
+videos before normal viewing hours, or a direct per-title exception.
 
-**Experimental preview.** Native-server and browser acceptance tests passed on unmodified Jellyfin 12.1 and
-12.2 against
-disposable data. Real Apple TV/iPhone household validation is still pending.
+**Experimental preview.** Native-server and browser acceptance tests passed on
+unmodified Jellyfin 10.11.11, 12.1 and 12.2 against disposable data. The 10.11.11
+result uses the net9.0 backport target on Windows x64. Real Apple TV/iPhone
+household validation is still pending.
 Read [installation](docs/installation.md) and [security boundaries](SECURITY.md)
 before a staging pilot. This is a community project, not an official Jellyfin plugin.
 
@@ -41,6 +43,11 @@ imported tags. External metadata/NFO files or AI suggestions cannot grant access
 A confirmed series label or title grant covers descendants; an episode override
 can be narrower. Stable local title IDs are used in this preview; automatic
 provider-ID rematching after a replacement is not yet implemented.
+
+The matrix pages through the native Jellyfin catalog and provides Inherit, Allow
+and Deny per managed account. Inherit keeps every rating, schedule, category,
+franchise and compound rule intact. Matrix title IDs are packed into bounded
+rules, and multi-account saves use one revision-checked store commit.
 
 ## How it works
 
@@ -86,13 +93,17 @@ and synthetic accounts. [Development plan](DEVELOPMENT-PLAN.md),
 ## Project status
 
 - Implemented: policy core, parent-only API, PG preset/advanced rule editor,
+  responsive paginated library matrix, atomic multi-account title exceptions,
   confirmed labels, preview, native content enforcement, schedule filter,
   independent guard, original-policy restoration and bounded revision audit.
-- Tested locally: 28 core behavioral cases; two synthetic child identities; native file/HLS
-  delivery; series/episode precedence; native timed file cutoff; guard recovery;
-  real Chromium editor with the native API (ApiClient compatibility shim).
-- Pending: real Jellyfin web-shell/device pilot, broader route/security review,
-  Seerr integration, provider rematching, large-library performance measurements.
+- Tested locally: 28 core behavioral cases; Jellyfin 10.11.11, 12.1 and 12.2;
+  two synthetic child identities; native file/HLS delivery; series/episode precedence;
+  native timed file cutoff; guard recovery; real Chromium editor and matrix with
+  the native API (ApiClient compatibility shim), including stale-revision draft
+  preservation. The net9 build also passed in the installed Jellyfin 10.11.11
+  web shell at a 390x844 viewport with contained horizontal matrix scrolling.
+- Pending: real phone/TV child-device pilots, broader route/security review, Seerr
+  integration, provider rematching and large-library performance measurements.
 
 The public repository is a reviewable preview; it does not advertise production
 readiness or untested compatibility. See [release notes](CHANGELOG.md).

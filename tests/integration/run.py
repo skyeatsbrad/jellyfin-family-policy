@@ -3,8 +3,11 @@ import os,json,time,subprocess,tempfile,shutil,urllib.request,urllib.error,urlli
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 DOTNET=os.environ['DOTNET_EXE'];SERVER=os.environ['JELLYFIN_SERVER_DLL'];FFMPEG=os.environ['JELLYFIN_FFMPEG']
+PLUGIN_TFM=os.environ.get('FAMILY_POLICY_PLUGIN_TFM','net10.0')
+GUARD_DOTNET=os.environ.get('FAMILY_POLICY_GUARD_DOTNET',DOTNET)
+GUARD_TFM=os.environ.get('FAMILY_POLICY_GUARD_TFM','net10.0')
 BASE='http://127.0.0.1:18097'
-state=Path(tempfile.mkdtemp(prefix='family-policy-integration-'));state.chmod(0o700)
+state=Path(tempfile.mkdtemp(prefix='family-policy-integration-',dir=os.environ.get('FAMILY_POLICY_TEST_ROOT')));state.chmod(0o700)
 report=[];server=None;guard=None
 
 def api(path,data=None,token=None,method=None):
@@ -49,7 +52,7 @@ try:
  (state/'config').mkdir()
  (state/'config/network.xml').write_text('<NetworkConfiguration><InternalHttpPort>18097</InternalHttpPort><PublicHttpPort>18097</PublicHttpPort><EnableIPv4>true</EnableIPv4><EnableIPv6>false</EnableIPv6><AutoDiscovery>false</AutoDiscovery><EnableUPnP>false</EnableUPnP><EnableRemoteAccess>false</EnableRemoteAccess><LocalNetworkAddresses><string>127.0.0.1</string></LocalNetworkAddresses></NetworkConfiguration>')
  plugin=state/'data/plugins/FamilyPolicy';plugin.mkdir(parents=True)
- for name in ['FamilyPolicy.Plugin.dll','FamilyPolicy.Core.dll']:shutil.copy(ROOT/'src/FamilyPolicy.Plugin/bin/Release/net10.0'/name,plugin)
+ for name in ['FamilyPolicy.Plugin.dll','FamilyPolicy.Core.dll']:shutil.copy(ROOT/'src/FamilyPolicy.Plugin/bin/Release'/PLUGIN_TFM/name,plugin)
  start()
  api('/Startup/User');password=secrets.token_urlsafe(24)
  expect('create synthetic parent',api('/Startup/User',{'Name':'TestParent','Password':password})[0],204)
@@ -67,7 +70,7 @@ try:
  expect('enrollment requires guard',api('/FamilyPolicy/Accounts/'+children[0][0],{'ExpectedRevision':0,'Policy':{'Rules':[]}},admin,'PUT')[0],503)
  credential=state/'guard-credential';credential.write_text(admin+'\n');credential.chmod(0o600)
  env=os.environ.copy();env.pop('FAMILY_POLICY_TOKEN',None);env.update(FAMILY_POLICY_SERVER=BASE,FAMILY_POLICY_TOKEN_FILE=str(credential),FAMILY_POLICY_USERS=','.join(x[0] for x in children))
- guard=subprocess.Popen([DOTNET,str(ROOT/'src/FamilyPolicy.Guard/bin/Release/net10.0/FamilyPolicy.Guard.dll')],env=env,stdout=(state/'guard.log').open('wb'),stderr=subprocess.STDOUT)
+ guard=subprocess.Popen([GUARD_DOTNET,str(ROOT/'src/FamilyPolicy.Guard/bin/Release'/GUARD_TFM/'FamilyPolicy.Guard.dll')],env=env,stdout=(state/'guard.log').open('wb'),stderr=subprocess.STDOUT)
  time.sleep(2)
  fixtures=state/'media';fixtures.mkdir();seed=state/'seed.mp4'
  subprocess.run([FFMPEG,'-hide_banner','-loglevel','error','-f','lavfi','-i','color=c=blue:s=160x90:d=2','-c:v','libx264','-pix_fmt','yuv420p','-movflags','+faststart',str(seed)],check=True)
@@ -108,6 +111,14 @@ try:
   _,catalog=api('/Items?Recursive=true&IncludeItemTypes=Movie',token=token);visible={m['Name'] for m in catalog['Items']}
   assert visible=={'Safe','Soccer','Workout'},visible
   report.append({'check':'catalog exact allowlist','titles':sorted(visible)})
+ _,s=api('/FamilyPolicy/State',token=admin);bulk_revision=s['Revision']
+ bulk={'ExpectedRevision':bulk_revision,'Accounts':[{'UserId':uid,'Policy':policy} for uid,_ in children]}
+ code,result=api('/FamilyPolicy/Accounts',bulk,admin,'PUT');expect('atomic matrix policy update',code,200)
+ assert result['Revision']==bulk_revision+1,(result,bulk_revision)
+ report.append({'check':'matrix update uses one revision','account_count':len(children)})
+ duplicate={'ExpectedRevision':result['Revision'],'Accounts':[{'UserId':children[0][0],'Policy':policy},{'UserId':children[0][0],'Policy':policy}]}
+ expect('duplicate matrix account rejected',api('/FamilyPolicy/Accounts',duplicate,admin,'PUT')[0],400)
+ expect('child cannot apply matrix',api('/FamilyPolicy/Accounts',bulk,children[0][1],'PUT')[0],403)
  if os.environ.get('FAMILY_POLICY_BROWSER_TESTS')=='1':
   from browser import check_ui
   report.append(check_ui(BASE,admin,parent_id,ROOT))
@@ -172,7 +183,7 @@ try:
  expect('configure timed native test',api('/FamilyPolicy/Accounts/'+uid,{'ExpectedRevision':s['Revision'],'Policy':timed},admin,'PUT')[0],200)
  config='url = "'+BASE+'/Videos/'+titles['Workout']['Id']+'/stream?static=true"\nheader = "Authorization: MediaBrowser Token=\\"'+token+'\\""\n'
  begun=time.monotonic()
- transfer=subprocess.run(['curl','--config','-','--silent','--show-error','--output','/dev/null','--limit-rate','1M','--max-time','15','--write-out','%{http_code} %{size_download}'],input=config,capture_output=True,text=True)
+ transfer=subprocess.run(['curl','--config','-','--silent','--show-error','--output',os.devnull,'--limit-rate','1M','--max-time','15','--write-out','%{http_code} %{size_download}'],input=config,capture_output=True,text=True)
  elapsed=round(time.monotonic()-begun,2)
  assert transfer.returncode not in [0,28] and transfer.stdout.startswith('200 ') and elapsed<14,(transfer.returncode,transfer.stdout,elapsed)
  report.append({'check':'native PhysicalFile schedule cutoff','curl_exit':transfer.returncode,'http_and_bytes':transfer.stdout,'elapsed_seconds':elapsed})

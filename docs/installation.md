@@ -20,9 +20,15 @@ The guard needs administrator privileges because the native user-policy API
 5. Use HTTPS outside loopback. Trusted-network HTTP requires explicit
    FAMILY_POLICY_ALLOW_HTTP=true; traffic must stay on a restricted management path.
 6. Supervise the guard independently with automatic restart. A rootless pinned
-   Dockerfile is provided; container build/runtime is covered by CI; local target deployment remains unverified.
+   Dockerfile is provided and container build/runtime is covered by CI. A hardened
+   unprivileged systemd deployment has also been exercised on isolated Linux staging;
+   validate supervision and failure latency again on every target environment.
 7. Select a non-administrator account, choose the PG preset and timezone, then
    configure exceptions. Search titles and save parent-confirmed labels as needed.
+   The full-library matrix is available after an account has a base policy; use
+   Inherit to retain that base decision, or Allow/Deny for a direct title override.
+   Matrix changes remain drafts until explicitly applied. On narrow screens, the
+   title column remains pinned while account columns scroll horizontally.
 8. Preview decisions, apply, and test allowed/blocked native playback as the child.
    Confirm device accounts are not administrator sessions.
 

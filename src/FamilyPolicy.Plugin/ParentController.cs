@@ -9,6 +9,10 @@ namespace FamilyPolicy.Plugin;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ConfigureRequest(long ExpectedRevision, Policy Policy);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record AccountConfigureRequest(Guid UserId, Policy Policy);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record ConfigureManyRequest(long ExpectedRevision, AccountConfigureRequest[] Accounts);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record LabelsRequest(long ExpectedRevision, TrustedLabels Labels);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record HeartbeatRequest(Guid[] UserIds);
@@ -40,6 +44,22 @@ public sealed class ParentController(PolicyStore store, PolicyService service, I
         if (!lease.Covers(userId)) return StatusCode(503, new { error = "Start the external health guard before enrolling accounts." });
         try { await service.Configure(userId, request.Policy, request.ExpectedRevision, Actor, ct); return Ok(new { store.Read().Revision }); }
         catch (RevisionConflictException) { return Conflict(new { error = "Configuration changed; reload and retry." }); }
+        catch (ArgumentException ex) { return BadRequest(new { error = ex.Message }); }
+        catch (TimeZoneNotFoundException) { return BadRequest(new { error = "Unknown timezone." }); }
+    }
+    [HttpPut("Accounts")]
+    public async Task<IActionResult> ConfigureMany(ConfigureManyRequest request, CancellationToken ct)
+    {
+        if (request.Accounts is null || request.Accounts.Length is < 1 or > 100 || request.Accounts.Any(a => a is null || a.UserId == Guid.Empty || a.Policy is null))
+            return BadRequest(new { error = "Provide 1–100 account policies." });
+        if (request.Accounts.Any(a => !lease.Covers(a.UserId)))
+            return StatusCode(503, new { error = "Start the external health guard for every account before applying matrix changes." });
+        try
+        {
+            await service.ConfigureMany(request.Accounts.Select(a => new PolicyConfiguration(a.UserId, a.Policy)).ToArray(), request.ExpectedRevision, Actor, ct);
+            return Ok(new { store.Read().Revision });
+        }
+        catch (RevisionConflictException) { return Conflict(new { error = "Configuration changed; drafts were not applied." }); }
         catch (ArgumentException ex) { return BadRequest(new { error = ex.Message }); }
         catch (TimeZoneNotFoundException) { return BadRequest(new { error = "Unknown timezone." }); }
     }

@@ -1,0 +1,83 @@
+{
+  "passed": true,
+  "date": "2026-10-12",
+  "target": {
+    "environment": "isolated Linux staging clone",
+    "jellyfin": "10.11.11",
+    "plugin_tfm": "net9.0",
+    "household_media_mounted": false,
+    "production_environment_modified": false
+  },
+  "build": {
+    "core_tests_passed": 28,
+    "plugin_warnings": 0,
+    "plugin_errors": 0,
+    "native_and_chromium_acceptance": true,
+    "staging_plugin_sha256": "fcfaf17513f6cc8d5f5727fdbd8b8b36ec67364f51a4f060a37212bc24c05450",
+    "staging_core_sha256": "2ba678574af95e4423c30623a02094435b412e055f885eab45ebf936b6883dcd"
+  },
+  "published_rebuild": {
+    "reason": "Compiler path metadata was remapped before public packaging.",
+    "source_equivalent_to_staging_build": true,
+    "native_and_chromium_acceptance": true,
+    "plugin_sha256": "5a0fb1a3b73fe43f5788edb2d441c0b44e2b86ac0258f0463514a91f7742e298",
+    "core_sha256": "3d0cf03c10e9d70cda9dca353d37bc647dabe306c254c84f47e3cd0b725532ed",
+    "guard_sha256": "8fd5bec1a0cde10046e828b00ca424b0ad4df37542d16dc99038435bf5976f82",
+    "self_contained_linux_guard_sha256": "6cfd42ba3a1e96a4552ffe30176a343c0f4a0e6d805fec2d1a5e79f5d1413531"
+  },
+  "installed_web_shell": {
+    "viewport": "390x844",
+    "rows": 5,
+    "account_columns": 4,
+    "scroll_client_width": 332,
+    "scroll_content_width": 950,
+    "horizontal_overflow": "auto",
+    "page_width_preserved": 390,
+    "account_control_width": 360.25,
+    "rule_control_width": 333.9375,
+    "matrix_filter_control_width": 333.9375,
+    "primary_button_contrast_overridden": true,
+    "matrix_reload_preserved_unsaved_draft": true,
+    "page_reload_discarded_unsaved_draft": true,
+    "console_errors": 0
+  },
+  "enforcement": {
+    "approved_child_catalog": [
+      "Mature",
+      "Safe",
+      "Workout"
+    ],
+    "restricted_child_catalog": [
+      "Safe",
+      "Workout"
+    ],
+    "approved_child_mature_file_http": 200,
+    "restricted_child_mature_file_http": 403,
+    "restricted_child_safe_file_http": 200
+  },
+  "guard": {
+    "loaded": true,
+    "healthy": true,
+    "service_active": true,
+    "service_enabled_at_boot": false,
+    "dedicated_unprivileged_user": true,
+    "no_new_privileges": true,
+    "protect_system": "strict"
+  },
+  "isolation": {
+    "container_autostart": false,
+    "caddy_masked": true,
+    "ssh_masked": true,
+    "root_locked": true,
+    "nas_mounts": 0,
+    "externally_listening_services": [
+      "Jellyfin TCP 8096"
+    ],
+    "remaining_synthetic_users": 3
+  },
+  "production_check": {
+    "jellyfin_active": true,
+    "family_policy_files": 0,
+    "family_policy_endpoint_http": 404
+  }
+}

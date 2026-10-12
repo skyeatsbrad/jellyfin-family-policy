@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright,expect
 import json
 
 def check_ui(base,admin,parent_id,root):
-    html=(root/'src/FamilyPolicy.Plugin/Web/settings.html').read_text()
+    html=(root/'src/FamilyPolicy.Plugin/Web/settings.html').read_text(encoding='utf-8')
     with sync_playwright() as p:
         browser=p.chromium.launch()
         page=browser.new_page()
@@ -20,6 +20,8 @@ def check_ui(base,admin,parent_id,root):
         };''')
         page.route(base+'/ui-test.html',lambda route:route.fulfill(status=200,body=html,content_type='text/html'))
         page.goto(base+'/ui-test.html')
+        assert page.locator('#familyPolicyPage style').count()==1
+        assert page.locator('fieldset.fpMatrixFieldset').count()==1
         page.evaluate("document.getElementById('familyPolicyPage').dispatchEvent(new Event('pageshow'))")
         expect(page.locator('#fpAccount option')).to_have_count(2)
         page.locator('#fpPg').click()
@@ -41,5 +43,39 @@ def check_ui(base,admin,parent_id,root):
         assert len(json.loads(page.locator('#fpPolicy').input_value())['Rules'])==5
         page.locator('#fpRules button').last.click()
         assert len(json.loads(page.locator('#fpPolicy').input_value())['Rules'])==4
+        # Matrix changes for another account must not discard the active account's draft.
+        expect(page.locator('#fpMatrixBody tr')).to_have_count(5)
+        mature=page.locator('#fpMatrixBody tr[data-item-name="Mature"]')
+        mature_id=mature.get_attribute('data-item-id')
+        child_b=mature.locator('select[data-user-name="ChildB"]')
+        child_b_id=child_b.get_attribute('data-user-id')
+        child_b.select_option('deny')
+        page.locator('#fpMatrixApply').click()
+        expect(page.locator('#fpResult')).to_contain_text('Matrix changes applied')
+        assert len(json.loads(page.locator('#fpPolicy').input_value())['Rules'])==4
+        state=page.evaluate('''async () => {
+          const r=await fetch(__testConfig.base+'/FamilyPolicy/State',{headers:{'Authorization':'MediaBrowser Token="'+__testConfig.token+'"'}});
+          return r.json();
+        }''')
+        child_policy=next(a['Policy'] for a in state['Accounts'] if a['UserId'].replace('-','').lower()==child_b_id.replace('-','').lower())
+        assert any(r.get('Effect')=='Deny' and mature_id.replace('-','').lower() in [v.replace('-','').lower() for v in r.get('When',{}).get('Values',[])] for r in child_policy['Rules'])
+        # A stale revision must leave both the matrix edit and unrelated active draft intact.
+        safe=page.locator('#fpMatrixBody tr[data-item-name="Safe"]')
+        safe_id=safe.get_attribute('data-item-id')
+        safe_child_b=safe.locator('select[data-user-name="ChildB"]')
+        safe_child_b.select_option('deny')
+        bumped=page.evaluate('''async itemId => {
+          const headers={'Authorization':'MediaBrowser Token="'+__testConfig.token+'"','Content-Type':'application/json'};
+          const state=await (await fetch(__testConfig.base+'/FamilyPolicy/State',{headers})).json();
+          const response=await fetch(__testConfig.base+'/FamilyPolicy/Labels/'+itemId,{method:'PUT',headers,
+            body:JSON.stringify({ExpectedRevision:state.Revision,Labels:{Categories:['Revision conflict fixture']}})});
+          return response.status;
+        }''',safe_id)
+        assert bumped==200
+        page.locator('#fpMatrixApply').click()
+        expect(page.locator('#fpResult')).to_contain_text('Matrix changes were not applied')
+        expect(safe_child_b).to_have_value('deny')
+        assert len(json.loads(page.locator('#fpPolicy').input_value())['Rules'])==4
         browser.close()
-    return {'check':'Chromium rule-editor workflow','preset_and_advanced_rules':True,'preview_uses_native_api':True,'label_save_preserves_draft':True}
+    return {'check':'Chromium rule-editor and library-matrix workflow','preset_and_advanced_rules':True,'preview_uses_native_api':True,
+            'matrix_paging_and_update':True,'matrix_conflict_preserves_drafts':True,'label_save_preserves_draft':True}

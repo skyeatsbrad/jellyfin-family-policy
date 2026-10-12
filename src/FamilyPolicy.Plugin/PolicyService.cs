@@ -7,6 +7,7 @@ using MediaBrowser.Model.Users;
 using Jellyfin.Database.Implementations.Enums;
 namespace FamilyPolicy.Plugin;
 
+public sealed record PolicyConfiguration(Guid UserId, Policy Policy);
 public sealed class PolicyService(PolicyStore store, ILibraryManager library, IUserManager users)
 {
     private readonly SemaphoreSlim gate = new(1, 1);
@@ -43,18 +44,29 @@ public sealed class PolicyService(PolicyStore store, ILibraryManager library, IU
         return decision;
     }
     public async Task Configure(Guid id, Policy policy, long revision, string actor, CancellationToken ct)
+        => await ConfigureMany([new(id, policy)], revision, actor, ct);
+    public async Task ConfigureMany(PolicyConfiguration[] configurations, long revision, string actor, CancellationToken ct)
     {
-        _ = new PolicyEvaluator(policy);
+        ArgumentNullException.ThrowIfNull(configurations);
+        if (configurations.Length is < 1 or > 100 || configurations.Any(c => c is null || c.UserId == Guid.Empty || c.Policy is null) || configurations.Select(c => c.UserId).Distinct().Count() != configurations.Length)
+            throw new ArgumentException("Provide 1–100 unique account policies.");
+        foreach (var configuration in configurations) _ = new PolicyEvaluator(configuration.Policy);
         await gate.WaitAsync(ct);
         try
         {
-            var user = users.GetUserById(id) ?? throw new ArgumentException("Unknown user.");
-            var native = users.GetUserDto(user).Policy;
-            if (native.IsAdministrator) throw new ArgumentException("Administrator accounts cannot be managed.");
-            var original = store.Read().Accounts.FirstOrDefault(a => a.UserId == id)?.OriginalPolicy ?? JsonSerializer.Serialize(native);
+            var snapshot = store.Read();
+            var updates = new List<AccountPolicy>(configurations.Length);
+            foreach (var configuration in configurations)
+            {
+                var user = users.GetUserById(configuration.UserId) ?? throw new ArgumentException("Unknown user.");
+                var native = users.GetUserDto(user).Policy;
+                if (native.IsAdministrator) throw new ArgumentException("Administrator accounts cannot be managed.");
+                var original = snapshot.Accounts.FirstOrDefault(a => a.UserId == configuration.UserId)?.OriginalPolicy ?? JsonSerializer.Serialize(native);
+                updates.Add(new(configuration.UserId, configuration.Policy, original));
+            }
             // Persist enrollment first; the stream filter denies according to the new policy immediately.
-            store.Set(id, policy, original, revision, actor);
-            await ReconcileAccount(id, ct);
+            store.SetMany(updates.ToArray(), revision, actor);
+            foreach (var configuration in configurations) await ReconcileAccount(configuration.UserId, ct);
         }
         finally { gate.Release(); }
     }

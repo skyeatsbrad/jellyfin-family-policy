@@ -8,6 +8,7 @@ comes from authenticated claims, never from a body field.
 | --- | --- |
 | GET /FamilyPolicy/State | Revision, managed account policies, confirmed annotations, last 500 audit entries; original native policies are not exposed |
 | PUT /FamilyPolicy/Accounts/{userId} | ExpectedRevision + Policy; requires healthy guard coverage; rejects administrator enrollment |
+| PUT /FamilyPolicy/Accounts | ExpectedRevision + 1–100 Accounts entries containing UserId + Policy; requires healthy guard coverage for every account and commits all policies under one revision |
 | POST /FamilyPolicy/Accounts/{userId}/Restore | ExpectedRevision; restores captured native policy before dropping plugin enforcement |
 | PUT /FamilyPolicy/Labels/{itemId} | ExpectedRevision + Labels with optional Categories, Subjects, Franchises arrays; parent-owned source |
 | POST /FamilyPolicy/Preview/{itemId} | Policy; returns ContentAllowed, TimeAllowed, Allowed, rule matches and reasons |
@@ -20,6 +21,11 @@ coverage returns 503. Policy writes commit before catalog reconciliation; if a
 request fails after commit, reload State before retrying. Reconciliation is
 idempotent and retried by the background worker. Runtime decisions use the current
 policy/annotation snapshot; browse-cache synchronization can lag.
+
+The bulk Accounts route validates every policy and account before committing.
+Duplicate account IDs are rejected. Its policy snapshot is atomic and advances
+the store revision once; per-account native catalog reconciliation follows that
+commit and may complete at different times.
 
 ## Policy
 

@@ -41,6 +41,28 @@ public sealed class PolicyStore
             evaluators = nextEvaluators;
         }
     }
+    public void SetMany(AccountPolicy[] updates, long expected, string actor)
+    {
+        ArgumentNullException.ThrowIfNull(updates);
+        if (updates.Length is < 1 or > 100 || updates.Any(a => a is null) || updates.Select(a => a.UserId).Distinct().Count() != updates.Length)
+            throw new ArgumentException("Provide 1–100 unique account policies.");
+        lock (gate)
+        {
+            if (expected != snapshot.Revision) throw new RevisionConflictException();
+            var cloned = updates.Select(a => new AccountPolicy(
+                a.UserId,
+                JsonSerializer.Deserialize<Policy>(JsonSerializer.Serialize(a.Policy))!,
+                a.OriginalPolicy)).ToArray();
+            var ids = cloned.Select(a => a.UserId).ToHashSet();
+            var revision = snapshot.Revision + 1;
+            var entries = snapshot.Accounts.Where(a => !ids.Contains(a.UserId)).Concat(cloned).ToArray();
+            var audit = snapshot.Audit.Concat(cloned.Select(a => new AuditEntry(DateTimeOffset.UtcNow, actor, a.UserId, "configure", revision))).TakeLast(500).ToArray();
+            Persist(new StoreSnapshot(revision, entries, audit, snapshot.Labels));
+            var nextEvaluators = new Dictionary<Guid, PolicyEvaluator>(evaluators);
+            foreach (var account in cloned) nextEvaluators[account.UserId] = new(account.Policy);
+            evaluators = nextEvaluators;
+        }
+    }
     public void SetLabels(Guid item, TrustedLabels labels, long expected, string actor)
     {
         static void Check(string[]? values) { if (values is not null && (values.Length > 64 || values.Any(v => string.IsNullOrWhiteSpace(v) || v.Length > 128))) throw new ArgumentException("Invalid label values."); }
