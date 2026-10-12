@@ -3,7 +3,7 @@ WORKDIR /src
 COPY global.json ./
 COPY src/Directory.Build.props ./src/
 COPY src/FamilyPolicy.Guard/ ./src/FamilyPolicy.Guard/
-RUN dotnet restore src/FamilyPolicy.Guard/FamilyPolicy.Guard.csproj --locked-mode && dotnet publish src/FamilyPolicy.Guard/FamilyPolicy.Guard.csproj -c Release --no-restore -o /out
+RUN dotnet restore src/FamilyPolicy.Guard/FamilyPolicy.Guard.csproj --locked-mode && dotnet publish src/FamilyPolicy.Guard/FamilyPolicy.Guard.csproj -c Release --framework net10.0 --no-restore -o /out
 FROM mcr.microsoft.com/dotnet/runtime:10.0.12@sha256:b89586dc17781f25531909993658aa8161205ae38b8cec8847df4a8221a403d5
 WORKDIR /app
 COPY --from=build /out ./
