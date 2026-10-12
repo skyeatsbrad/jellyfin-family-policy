@@ -1,5 +1,18 @@
 # Changelog
 
+## Android 0.1.0 preview 2 — 2026-10-12
+
+- Rebuilt the administrator experience around a Jellyfin-inspired dark media
+  dashboard with cyan-purple branding, rounded cards and clearer hierarchy.
+- Added prominent plugin/guard health, themed sign-in fields, dark spinner
+  menus, compact household and library controls, and a fixed draft/apply area.
+- Reworked title rows with media-type badges and segmented Inherit/Allow/Deny
+  controls that show the active state and pending changes more clearly.
+- Added explicit Android system-bar inset handling and validated the layout at
+  normal and compact phone sizes on an API 36 emulator.
+- Preserved all authentication, encrypted-session, atomic update, conflict,
+  restore, updater and server-side enforcement behavior.
+
 ## 0.1.0 preview — 2026-10-12
 
 - Deterministic content and time policies, three-valued conditions, explicit conflict

@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="navy">#17324D</color>
-    <color name="navy_dark">#10243A</color>
+    <color name="background">#0D0E14</color>
+    <color name="surface">#1B1D27</color>
+    <color name="surface_elevated">#232531</color>
+    <color name="surface_muted">#2D2F3B</color>
+    <color name="surface_border">#3D4050</color>
+    <color name="text_primary">#F6F7FB</color>
+    <color name="text_secondary">#AEB4C7</color>
+    <color name="text_muted">#7E8497</color>
     <color name="accent">#00A4DC</color>
-    <color name="icon_background">#17324D</color>
+    <color name="accent_purple">#AA5CC3</color>
+    <color name="success">#46C97E</color>
+    <color name="warning">#F4AE49</color>
+    <color name="error">#F26874</color>
+    <color name="icon_background">#0D0E14</color>
 </resources>

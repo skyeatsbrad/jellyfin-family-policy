@@ -5,14 +5,14 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -97,6 +97,7 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        JellyfinTheme.applyWindow(this);
         sessionStore = new SecureSessionStore(this);
         AppUpdateManager.schedule(this);
         updateCheckPending = getIntent().getBooleanExtra(AppUpdateManager.EXTRA_CHECK_UPDATES, false);
@@ -140,61 +141,114 @@ public final class MainActivity extends Activity {
         }
         showLogin(message);
         if (storedSession != null) {
-            loginStatus.setText("Checking the saved administrator session...");
+            setLoginStatus("Checking the saved administrator session...");
             connect(storedSession, true);
         }
     }
 
     private void showLogin(String message) {
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setClipToPadding(false);
+        scroll.setBackgroundColor(JellyfinTheme.BACKGROUND);
+        applySystemBarInsets(scroll);
+
         LinearLayout content = verticalContainer();
-        scroll.addView(content);
+        content.setGravity(Gravity.CENTER_HORIZONTAL);
+        content.setPadding(dp(18), dp(18), dp(18), dp(28));
+        scroll.addView(content, new ScrollView.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
 
-        TextView title = heading("Family Policy", 30);
-        content.addView(title);
+        LinearLayout hero = verticalColumn();
+        hero.setBackground(JellyfinTheme.hero(this));
+        hero.setPadding(dp(22), dp(24), dp(22), dp(24));
+        hero.setElevation(dp(6));
+
+        TextView brand = text("FAMILY POLICY", 12);
+        brand.setTextColor(0xE6FFFFFF);
+        brand.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        brand.setLetterSpacing(0.12f);
+        hero.addView(brand);
+
+        TextView title = heading("Jellyfin access,\nmade simple.", 30);
+        title.setTextColor(JellyfinTheme.TEXT_PRIMARY);
+        title.setLineSpacing(0, 0.95f);
+        hero.addView(title, topMargin(8));
         TextView subtitle = text(
-            "Sign in with a Jellyfin administrator account. The password is sent only to your server and is never stored.",
-            16
+            "Set household ratings and per-title access from one secure dashboard.",
+            15
         );
-        subtitle.setPadding(0, dp(6), 0, dp(20));
-        content.addView(subtitle);
+        subtitle.setTextColor(0xE6FFFFFF);
+        subtitle.setPadding(0, dp(10), 0, 0);
+        hero.addView(subtitle);
+        content.addView(hero, bottomMargin(16));
 
-        content.addView(label("Jellyfin server URL"));
+        LinearLayout form = cardContainer();
+        form.addView(sectionCaption("ADMINISTRATOR SIGN IN"));
+        TextView formHint = text(
+            "Use a Jellyfin administrator account. Your password is sent only to your server and is never stored.",
+            14
+        );
+        formHint.setTextColor(JellyfinTheme.TEXT_SECONDARY);
+        formHint.setLineSpacing(0, 1.12f);
+        form.addView(formHint, bottomMargin(10));
+
+        form.addView(label("Jellyfin server URL"));
         serverField = input(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         serverField.setHint("https://jellyfin.example.com");
         serverField.setText(sessionStore.serverHint());
-        content.addView(serverField);
+        form.addView(serverField, bottomMargin(6));
 
-        content.addView(label("Administrator username"));
+        form.addView(label("Administrator username"));
         userNameField = input(InputType.TYPE_CLASS_TEXT);
         userNameField.setText(sessionStore.userNameHint());
-        content.addView(userNameField);
+        form.addView(userNameField, bottomMargin(6));
 
-        content.addView(label("Password"));
+        form.addView(label("Password"));
         passwordField = input(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        content.addView(passwordField);
+        passwordField.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        passwordField.setOnEditorActionListener((view, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                beginLogin();
+                return true;
+            }
+            return false;
+        });
+        form.addView(passwordField, bottomMargin(16));
 
-        Button signIn = button("Sign in");
+        Button signIn = primaryButton("Sign in to Jellyfin");
         signIn.setOnClickListener(view -> beginLogin());
-        content.addView(signIn);
+        form.addView(signIn, bottomMargin(8));
 
         if (storedSession != null) {
-            Button resume = button("Retry saved session");
+            Button resume = secondaryButton("Retry saved session");
             resume.setOnClickListener(view -> connect(storedSession, true));
-            content.addView(resume);
+            form.addView(resume, bottomMargin(8));
         }
 
-        Button updates = button("Check for app update");
+        Button updates = ghostButton("Check for app update");
         updates.setOnClickListener(view -> checkForUpdates(true));
-        content.addView(updates);
+        form.addView(updates);
 
         loginStatus = text(message, 15);
-        loginStatus.setTextColor(Color.rgb(145, 45, 45));
-        loginStatus.setPadding(0, dp(12), 0, dp(12));
-        content.addView(loginStatus);
+        loginStatus.setTextColor(JellyfinTheme.statusColor(message));
+        loginStatus.setMinHeight(dp(28));
+        loginStatus.setPadding(0, dp(12), 0, 0);
+        form.addView(loginStatus);
+        content.addView(form, bottomMargin(12));
+
+        TextView security = text("Encrypted session storage. Passwords are never saved.", 13);
+        security.setTextColor(JellyfinTheme.TEXT_SECONDARY);
+        security.setGravity(Gravity.CENTER);
+        security.setBackground(JellyfinTheme.elevatedCard(this));
+        security.setPadding(dp(14), dp(12), dp(14), dp(12));
+        content.addView(security, bottomMargin(12));
 
         TextView version = text("Android preview " + JellyfinClient.VERSION, 13);
-        version.setTextColor(Color.rgb(90, 100, 110));
+        version.setTextColor(JellyfinTheme.TEXT_MUTED);
+        version.setGravity(Gravity.CENTER);
         content.addView(version);
         setContentView(scroll);
         maybeRunPendingUpdateCheck();
@@ -205,13 +259,13 @@ public final class MainActivity extends Activity {
         try {
             server = JellyfinClient.normalizeBaseUrl(serverField.getText().toString());
         } catch (IllegalArgumentException ex) {
-            loginStatus.setText(ex.getMessage());
+            setLoginStatus(ex.getMessage());
             return;
         }
         String username = userNameField.getText().toString().trim();
         String password = passwordField.getText().toString();
         if (username.isEmpty() || password.isEmpty()) {
-            loginStatus.setText("Enter the administrator username and password.");
+            setLoginStatus("Enter the administrator username and password.");
             return;
         }
         if (JellyfinClient.isCleartext(server)) {
@@ -227,14 +281,14 @@ public final class MainActivity extends Activity {
     }
 
     private void performLogin(String server, String username, String password) {
-        loginStatus.setText("Signing in...");
+        setLoginStatus("Signing in...");
         sessionStore.saveLoginHint(server, username);
         runTask(
             () -> JellyfinClient.authenticate(server, username, password, sessionStore.deviceId()),
             authenticated -> {
                 passwordField.setText("");
                 if (!authenticated.administrator) {
-                    loginStatus.setText("Family Policy requires a Jellyfin administrator account.");
+                    setLoginStatus("Family Policy requires a Jellyfin administrator account.");
                     return;
                 }
                 session = authenticated;
@@ -242,11 +296,11 @@ public final class MainActivity extends Activity {
                 try {
                     sessionStore.save(authenticated);
                 } catch (GeneralSecurityException ex) {
-                    loginStatus.setText("Signed in, but Android could not securely remember the session.");
+                    setLoginStatus("Signed in, but Android could not securely remember the session.");
                 }
                 connect(authenticated, false);
             },
-            error -> loginStatus.setText(describeError(error))
+            error -> setLoginStatus(describeError(error))
         );
     }
 
@@ -259,7 +313,7 @@ public final class MainActivity extends Activity {
         );
         session = target;
         if (loginStatus != null) {
-            loginStatus.setText(restored ? "Loading saved session..." : "Loading Family Policy...");
+            setLoginStatus(restored ? "Loading saved session..." : "Loading Family Policy...");
         }
         runTask(
             () -> DashboardData.fetch(client),
@@ -322,100 +376,137 @@ public final class MainActivity extends Activity {
     private void showDashboard(JSONObject health) {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(247, 249, 251));
+        root.setBackgroundColor(JellyfinTheme.BACKGROUND);
+        applySystemBarInsets(root);
+
+        ListView list = new ListView(this);
+        list.setBackgroundColor(JellyfinTheme.BACKGROUND);
+        list.setDivider(null);
+        list.setDividerHeight(0);
+        list.setSelector(android.R.color.transparent);
+        list.setClipToPadding(false);
+        list.setPadding(0, 0, 0, dp(8));
 
         LinearLayout controls = verticalContainer();
-        controls.setPadding(dp(14), dp(12), dp(14), dp(8));
-        root.addView(controls, new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
+        controls.setPadding(dp(12), dp(12), dp(12), dp(6));
 
-        TextView title = heading("Family Policy", 26);
-        controls.addView(title);
+        LinearLayout hero = verticalColumn();
+        hero.setBackground(JellyfinTheme.hero(this));
+        hero.setPadding(dp(18), dp(18), dp(18), dp(16));
+        hero.setElevation(dp(6));
 
-        LinearLayout actions = horizontalRow();
-        Button refresh = button("Refresh");
-        Button updates = button("Updates");
-        Button signOut = button("Sign out");
-        actions.addView(refresh, weighted());
-        actions.addView(updates, weighted());
-        actions.addView(signOut, weighted());
-        controls.addView(actions);
+        LinearLayout titleRow = horizontalRow();
+        LinearLayout titleColumn = verticalColumn();
+        TextView title = heading("Family Policy", 27);
+        title.setTextColor(JellyfinTheme.TEXT_PRIMARY);
+        titleColumn.addView(title);
+        TextView heroSubtitle = text("Jellyfin household access manager", 13);
+        heroSubtitle.setTextColor(0xE6FFFFFF);
+        titleColumn.addView(heroSubtitle);
+        titleRow.addView(titleColumn, weighted());
 
-        TextView server = text(client.baseUrl(), 13);
-        server.setTextColor(Color.rgb(80, 90, 100));
-        controls.addView(server);
-        healthText = text("", 14);
-        controls.addView(healthText);
         boolean guardHealthy = health.optBoolean("guardHealthy", false);
         String pluginVersion = health.optString("version", "unknown");
-        healthText.setText("Plugin " + pluginVersion + " - guard " + (guardHealthy ? "healthy" : "not healthy"));
-        healthText.setTextColor(guardHealthy ? Color.rgb(25, 115, 60) : Color.rgb(175, 75, 20));
+        healthText = text(guardHealthy ? "Guard healthy" : "Guard attention", 12);
+        healthText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        healthText.setTextColor(guardHealthy ? JellyfinTheme.SUCCESS : JellyfinTheme.WARNING);
+        healthText.setBackground(JellyfinTheme.statusPill(this, guardHealthy));
+        healthText.setGravity(Gravity.CENTER);
+        healthText.setPadding(dp(11), dp(7), dp(11), dp(7));
+        titleRow.addView(healthText);
+        hero.addView(titleRow);
 
-        controls.addView(label("Family member"));
+        TextView server = text(client.baseUrl() + "\nPlugin " + pluginVersion, 12);
+        server.setTextColor(0xCCFFFFFF);
+        server.setPadding(0, dp(10), 0, dp(12));
+        hero.addView(server);
+
+        LinearLayout actions = horizontalRow();
+        Button refresh = secondaryButton("Refresh");
+        Button updates = secondaryButton("Updates");
+        Button signOut = ghostButton("Sign out");
+        actions.addView(refresh, weightedWithEndMargin(6));
+        actions.addView(updates, weightedWithEndMargin(6));
+        actions.addView(signOut, weighted());
+        hero.addView(actions);
+        controls.addView(hero, bottomMargin(12));
+
+        LinearLayout policyCard = cardContainer();
+        policyCard.addView(sectionCaption("HOUSEHOLD PROFILE"));
+        policyCard.addView(label("Family member"));
         userSpinner = new Spinner(this);
-        ArrayAdapter<UserEntry> userAdapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_spinner_item,
-            users
-        );
-        userAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        userSpinner.setAdapter(userAdapter);
-        controls.addView(userSpinner, matchWidth());
+        JellyfinTheme.styleSpinner(this, userSpinner);
+        userSpinner.setAdapter(new DarkSpinnerAdapter<>(this, users));
+        policyCard.addView(userSpinner, matchWidth());
 
         userStatusText = text("", 13);
-        controls.addView(userStatusText);
+        userStatusText.setTextColor(JellyfinTheme.TEXT_SECONDARY);
+        userStatusText.setPadding(0, dp(8), 0, dp(10));
+        policyCard.addView(userStatusText);
+
+        View policyDivider = new View(this);
+        policyDivider.setBackground(JellyfinTheme.divider(this));
+        policyCard.addView(policyDivider, dividerParams());
+        policyCard.addView(sectionCaption("DEFAULT ACCESS"), topMargin(12));
 
         LinearLayout policyRow = horizontalRow();
         LinearLayout ratingColumn = verticalColumn();
-        ratingColumn.addView(label("Default rating boundary"));
+        ratingColumn.addView(label("Rating boundary"));
         ratingSpinner = new Spinner(this);
-        ArrayAdapter<PolicyJson.RatingPreset> ratingAdapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_spinner_item,
-            PolicyJson.RatingPreset.values()
-        );
-        ratingAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        ratingSpinner.setAdapter(ratingAdapter);
+        JellyfinTheme.styleSpinner(this, ratingSpinner);
+        ratingSpinner.setAdapter(new DarkSpinnerAdapter<>(this, PolicyJson.RatingPreset.values()));
         ratingColumn.addView(ratingSpinner, matchWidth());
-        policyRow.addView(ratingColumn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        restoreButton = button("Restore native policy");
-        policyRow.addView(restoreButton, new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-        controls.addView(policyRow);
+        policyRow.addView(ratingColumn, weightedWithEndMargin(8));
+        restoreButton = dangerButton("Restore native");
+        LinearLayout.LayoutParams restoreParams = fixedWidth(128);
+        restoreParams.topMargin = dp(28);
+        policyRow.addView(restoreButton, restoreParams);
+        policyCard.addView(policyRow);
+        controls.addView(policyCard, bottomMargin(12));
+
+        LinearLayout libraryCard = cardContainer();
+        libraryCard.addView(sectionCaption("LIBRARY ACCESS"));
+        TextView libraryHint = text(
+            "Search the library and set individual titles to inherit, allow, or deny.",
+            13
+        );
+        libraryHint.setTextColor(JellyfinTheme.TEXT_SECONDARY);
+        libraryHint.setLineSpacing(0, 1.08f);
+        libraryCard.addView(libraryHint, bottomMargin(8));
 
         LinearLayout searchRow = horizontalRow();
         searchField = input(InputType.TYPE_CLASS_TEXT);
-        searchField.setHint("Filter titles");
-        Button search = button("Search");
-        searchRow.addView(searchField, weighted());
-        searchRow.addView(search);
-        controls.addView(searchRow);
+        searchField.setHint("Search titles");
+        searchField.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
+        Button search = secondaryButton("Search");
+        searchRow.addView(searchField, weightedWithEndMargin(8));
+        searchRow.addView(search, fixedWidth(86));
+        libraryCard.addView(searchRow, bottomMargin(8));
 
         LinearLayout mediaRow = horizontalRow();
         mediaTypeSpinner = new Spinner(this);
-        ArrayAdapter<String> mediaTypeAdapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_spinner_item,
-            MEDIA_LABELS
-        );
-        mediaTypeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        mediaTypeSpinner.setAdapter(mediaTypeAdapter);
-        previousButton = button("Previous");
-        nextButton = button("Next");
-        mediaRow.addView(mediaTypeSpinner, weighted());
-        mediaRow.addView(previousButton);
-        mediaRow.addView(nextButton);
-        controls.addView(mediaRow);
+        JellyfinTheme.styleSpinner(this, mediaTypeSpinner);
+        mediaTypeSpinner.setAdapter(new DarkSpinnerAdapter<>(this, MEDIA_LABELS));
+        previousButton = ghostButton("Prev");
+        nextButton = ghostButton("Next");
+        mediaRow.addView(mediaTypeSpinner, weightedWithEndMargin(6));
+        mediaRow.addView(previousButton, fixedWidthWithEndMargin(64, 6));
+        mediaRow.addView(nextButton, fixedWidth(64));
+        libraryCard.addView(mediaRow);
 
         mediaStatusText = text("Loading library...", 13);
-        controls.addView(mediaStatusText);
+        mediaStatusText.setTextColor(JellyfinTheme.TEXT_MUTED);
+        mediaStatusText.setPadding(0, dp(8), 0, 0);
+        libraryCard.addView(mediaStatusText);
+        controls.addView(libraryCard, bottomMargin(12));
 
-        ListView list = new ListView(this);
-        list.setDividerHeight(dp(1));
+        controls.addView(sectionCaption("TITLE EXCEPTIONS"));
+        TextView listHint = text("Changes stay in a local draft until you apply them.", 13);
+        listHint.setTextColor(JellyfinTheme.TEXT_SECONDARY);
+        listHint.setPadding(0, dp(3), 0, dp(4));
+        controls.addView(listHint);
+        list.addHeaderView(controls, null, false);
+
         mediaAdapter = new MediaAdapter(this, new MediaAdapter.StateAccess() {
             @Override
             public String stateFor(String itemId) {
@@ -436,16 +527,20 @@ public final class MainActivity extends Activity {
             1
         ));
 
-        LinearLayout footer = verticalContainer();
-        footer.setPadding(dp(14), dp(8), dp(14), dp(12));
+        LinearLayout footer = verticalColumn();
+        footer.setBackground(JellyfinTheme.elevatedCard(this));
+        footer.setPadding(dp(14), dp(10), dp(14), dp(12));
+        footer.setElevation(dp(8));
         dirtyText = text("", 13);
+        dirtyText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         footer.addView(dirtyText);
-        statusText = text("", 14);
-        statusText.setTextColor(Color.rgb(125, 45, 45));
+        statusText = text("", 13);
+        statusText.setTextColor(JellyfinTheme.TEXT_SECONDARY);
+        statusText.setPadding(0, dp(2), 0, dp(7));
         footer.addView(statusText);
-        applyButton = button("Apply all pending changes");
+        applyButton = primaryButton("Apply all pending changes");
         footer.addView(applyButton);
-        root.addView(footer);
+        root.addView(footer, outerCardMargins());
         setContentView(root);
 
         refresh.setOnClickListener(view -> confirmDiscardAndReload());
@@ -454,6 +549,14 @@ public final class MainActivity extends Activity {
         search.setOnClickListener(view -> {
             mediaStart = 0;
             loadMediaPage();
+        });
+        searchField.setOnEditorActionListener((view, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                mediaStart = 0;
+                loadMediaPage();
+                return true;
+            }
+            return false;
         });
         previousButton.setOnClickListener(view -> {
             mediaStart = Math.max(0, mediaStart - PAGE_SIZE);
@@ -479,6 +582,7 @@ public final class MainActivity extends Activity {
             userSelectionChanged(0);
         } else {
             userStatusText.setText("No non-administrator Jellyfin users were found.");
+            userStatusText.setTextColor(JellyfinTheme.ERROR);
             restoreButton.setEnabled(false);
             ratingSpinner.setEnabled(false);
         }
@@ -494,6 +598,7 @@ public final class MainActivity extends Activity {
         userStatusText.setText(user.managed
             ? "Managed by Family Policy."
             : "Not yet managed. Applying a change enrolls this account with a PG default.");
+        userStatusText.setTextColor(user.managed ? JellyfinTheme.SUCCESS : JellyfinTheme.WARNING);
         restoreButton.setEnabled(user.managed);
         JSONObject policy = drafts.get(PolicyJson.normalizedId(user.id));
         PolicyJson.RatingPreset preset = PolicyJson.detectRatingPreset(policy);
@@ -550,6 +655,7 @@ public final class MainActivity extends Activity {
         String types = MEDIA_TYPES[Math.max(0, mediaTypeSpinner.getSelectedItemPosition())];
         String search = searchField == null ? "" : searchField.getText().toString();
         mediaStatusText.setText("Loading library...");
+        mediaStatusText.setTextColor(JellyfinTheme.TEXT_MUTED);
         previousButton.setEnabled(false);
         nextButton.setEnabled(false);
         int requestedStart = mediaStart;
@@ -579,13 +685,16 @@ public final class MainActivity extends Activity {
                 mediaStatusText.setText(mediaTotal == 0
                     ? "No matching titles"
                     : (mediaStart + 1) + "-" + end + " of " + mediaTotal);
+                mediaStatusText.setTextColor(JellyfinTheme.TEXT_SECONDARY);
                 previousButton.setEnabled(mediaStart > 0);
                 nextButton.setEnabled(mediaStart + PAGE_SIZE < mediaTotal);
                 mediaAdapter.setItems(media);
             },
             error -> {
                 mediaStatusText.setText("Library load failed: " + describeError(error));
+                mediaStatusText.setTextColor(JellyfinTheme.ERROR);
                 previousButton.setEnabled(mediaStart > 0);
+                nextButton.setEnabled(false);
             }
         );
     }
@@ -686,6 +795,7 @@ public final class MainActivity extends Activity {
         dirtyText.setText(count == 0
             ? "No pending changes."
             : count + " account draft" + (count == 1 ? "" : "s") + " changed.");
+        dirtyText.setTextColor(count == 0 ? JellyfinTheme.TEXT_SECONDARY : JellyfinTheme.CYAN);
         applyButton.setEnabled(count > 0);
     }
 
@@ -775,11 +885,20 @@ public final class MainActivity extends Activity {
     private void showStatus(String message) {
         if (statusText != null && statusText.isAttachedToWindow()) {
             statusText.setText(message);
+            statusText.setTextColor(JellyfinTheme.statusColor(message));
         } else if (loginStatus != null && loginStatus.isAttachedToWindow()) {
-            loginStatus.setText(message);
+            setLoginStatus(message);
         } else {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void setLoginStatus(String message) {
+        if (loginStatus == null) {
+            return;
+        }
+        loginStatus.setText(message == null ? "" : message);
+        loginStatus.setTextColor(JellyfinTheme.statusColor(message));
     }
 
     private String describeError(Exception error) {
@@ -827,7 +946,15 @@ public final class MainActivity extends Activity {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(dp(20), dp(20), dp(20), dp(20));
-        layout.setBackgroundColor(Color.rgb(247, 249, 251));
+        layout.setBackgroundColor(JellyfinTheme.BACKGROUND);
+        return layout;
+    }
+
+    private LinearLayout cardContainer() {
+        LinearLayout layout = verticalColumn();
+        layout.setBackground(JellyfinTheme.card(this));
+        layout.setPadding(dp(16), dp(15), dp(16), dp(16));
+        layout.setElevation(dp(2));
         return layout;
     }
 
@@ -846,14 +973,21 @@ public final class MainActivity extends Activity {
 
     private TextView heading(String value, int size) {
         TextView text = text(value, size);
-        text.setTextColor(Color.rgb(23, 50, 77));
+        JellyfinTheme.styleHeading(text);
+        return text;
+    }
+
+    private TextView sectionCaption(String value) {
+        TextView text = text(value, 12);
+        JellyfinTheme.styleSectionCaption(text);
         return text;
     }
 
     private TextView label(String value) {
-        TextView text = text(value, 14);
-        text.setTextColor(Color.rgb(55, 65, 75));
-        text.setPadding(0, dp(8), 0, dp(2));
+        TextView text = text(value, 13);
+        text.setTextColor(JellyfinTheme.TEXT_SECONDARY);
+        text.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        text.setPadding(0, dp(8), 0, dp(5));
         return text;
     }
 
@@ -861,7 +995,8 @@ public final class MainActivity extends Activity {
         TextView text = new TextView(this);
         text.setText(value);
         text.setTextSize(size);
-        text.setTextColor(Color.rgb(30, 40, 50));
+        text.setTextColor(JellyfinTheme.TEXT_PRIMARY);
+        text.setFontFeatureSettings("kern");
         return text;
     }
 
@@ -869,14 +1004,36 @@ public final class MainActivity extends Activity {
         EditText input = new EditText(this);
         input.setInputType(inputType);
         input.setSingleLine(true);
+        JellyfinTheme.styleInput(this, input);
         input.setLayoutParams(matchWidth());
         return input;
     }
 
-    private Button button(String value) {
+    private Button primaryButton(String value) {
         Button button = new Button(this);
         button.setText(value);
-        button.setAllCaps(false);
+        JellyfinTheme.stylePrimaryButton(this, button);
+        return button;
+    }
+
+    private Button secondaryButton(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        JellyfinTheme.styleSecondaryButton(this, button);
+        return button;
+    }
+
+    private Button ghostButton(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        JellyfinTheme.styleGhostButton(this, button);
+        return button;
+    }
+
+    private Button dangerButton(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        JellyfinTheme.styleDangerButton(this, button);
         return button;
     }
 
@@ -891,8 +1048,66 @@ public final class MainActivity extends Activity {
         return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
     }
 
+    private LinearLayout.LayoutParams weightedWithEndMargin(int margin) {
+        LinearLayout.LayoutParams params = weighted();
+        params.rightMargin = dp(margin);
+        return params;
+    }
+
+    private LinearLayout.LayoutParams fixedWidth(int width) {
+        return new LinearLayout.LayoutParams(dp(width), ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    private LinearLayout.LayoutParams fixedWidthWithEndMargin(int width, int margin) {
+        LinearLayout.LayoutParams params = fixedWidth(width);
+        params.rightMargin = dp(margin);
+        return params;
+    }
+
+    private LinearLayout.LayoutParams bottomMargin(int margin) {
+        LinearLayout.LayoutParams params = matchWidth();
+        params.bottomMargin = dp(margin);
+        return params;
+    }
+
+    private LinearLayout.LayoutParams topMargin(int margin) {
+        LinearLayout.LayoutParams params = matchWidth();
+        params.topMargin = dp(margin);
+        return params;
+    }
+
+    private LinearLayout.LayoutParams dividerParams() {
+        return new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(1)
+        );
+    }
+
+    private LinearLayout.LayoutParams outerCardMargins() {
+        LinearLayout.LayoutParams params = matchWidth();
+        params.setMargins(dp(10), dp(4), dp(10), dp(10));
+        return params;
+    }
+
+    @SuppressWarnings("deprecation")
+    private void applySystemBarInsets(View root) {
+        int left = root.getPaddingLeft();
+        int top = root.getPaddingTop();
+        int right = root.getPaddingRight();
+        int bottom = root.getPaddingBottom();
+        root.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(
+                left + insets.getSystemWindowInsetLeft(),
+                top + insets.getSystemWindowInsetTop(),
+                right + insets.getSystemWindowInsetRight(),
+                bottom + insets.getSystemWindowInsetBottom()
+            );
+            return insets;
+        });
+    }
+
     private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
+        return JellyfinTheme.dp(this, value);
     }
 
     private interface Task<T> {

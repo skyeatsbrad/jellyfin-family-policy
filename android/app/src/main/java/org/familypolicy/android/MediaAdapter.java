@@ -2,6 +2,9 @@ package org.familypolicy.android;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
@@ -63,15 +66,18 @@ final class MediaAdapter extends BaseAdapter {
         }
         MediaEntry item = getItem(position);
         holder.title.setText(item.title);
-        holder.detail.setText(item.detail);
+        holder.detail.setText(item.detail.replace(" - ", "  |  "));
+        holder.badge.setText(badgeText(item.detail));
+        holder.badge.setBackground(JellyfinTheme.mediaBadge(context, item.detail));
         holder.group.setOnCheckedChangeListener(null);
         String state = stateAccess.stateFor(item.id);
+        holder.card.setBackground(JellyfinTheme.mediaCard(context, state));
         if (PolicyJson.ALLOW.equals(state)) {
-            holder.allow.setChecked(true);
+            holder.group.check(holder.allow.getId());
         } else if (PolicyJson.DENY.equals(state)) {
-            holder.deny.setChecked(true);
+            holder.group.check(holder.deny.getId());
         } else {
-            holder.inherit.setChecked(true);
+            holder.group.check(holder.inherit.getId());
         }
         holder.group.setContentDescription("Access for " + item.title);
         holder.group.setOnCheckedChangeListener((group, checkedId) -> {
@@ -86,58 +92,125 @@ final class MediaAdapter extends BaseAdapter {
     private RowHolder createRow() {
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(10), dp(16), dp(10));
+        root.setPadding(dp(12), dp(6), dp(12), dp(6));
         root.setLayoutParams(new AbsListView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackground(JellyfinTheme.card(context));
+        card.setPadding(dp(14), dp(14), dp(14), dp(13));
+        card.setElevation(dp(2));
+        root.addView(card, new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
+        LinearLayout header = new LinearLayout(context);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        card.addView(header, new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
+        TextView badge = new TextView(context);
+        badge.setGravity(Gravity.CENTER);
+        badge.setTextColor(Color.WHITE);
+        badge.setTextSize(10);
+        badge.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        badge.setLetterSpacing(0.04f);
+        LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(dp(48), dp(48));
+        badgeParams.rightMargin = dp(12);
+        header.addView(badge, badgeParams);
+
+        LinearLayout metadata = new LinearLayout(context);
+        metadata.setOrientation(LinearLayout.VERTICAL);
+        metadata.setGravity(Gravity.CENTER_VERTICAL);
+        header.addView(metadata, new LinearLayout.LayoutParams(
+            0,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            1
+        ));
+
         TextView title = new TextView(context);
-        title.setTextSize(17);
-        title.setTextColor(Color.rgb(25, 35, 45));
-        root.addView(title, new LinearLayout.LayoutParams(
+        title.setTextSize(16);
+        title.setTextColor(JellyfinTheme.TEXT_PRIMARY);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        title.setMaxLines(2);
+        title.setEllipsize(TextUtils.TruncateAt.END);
+        metadata.addView(title, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
         TextView detail = new TextView(context);
         detail.setTextSize(13);
-        detail.setTextColor(Color.rgb(90, 100, 110));
-        root.addView(detail, new LinearLayout.LayoutParams(
+        detail.setTextColor(JellyfinTheme.TEXT_SECONDARY);
+        detail.setPadding(0, dp(3), 0, 0);
+        metadata.addView(detail, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
         RadioGroup group = new RadioGroup(context);
         group.setOrientation(LinearLayout.HORIZONTAL);
-        RadioButton inherit = radio("Inherit");
-        RadioButton allow = radio("Allow");
-        RadioButton deny = radio("Deny");
+        group.setGravity(Gravity.CENTER_VERTICAL);
+        group.setBackground(JellyfinTheme.input(context));
+        group.setPadding(dp(4), dp(4), dp(4), dp(4));
+        RadioButton inherit = radio("Inherit", Color.rgb(61, 82, 121));
+        RadioButton allow = radio("Allow", Color.rgb(31, 112, 75));
+        RadioButton deny = radio("Deny", Color.rgb(119, 45, 58));
         group.addView(inherit);
         group.addView(allow);
         group.addView(deny);
-        root.addView(group, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams groupParams = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-        return new RowHolder(root, title, detail, group, inherit, allow, deny);
+        );
+        groupParams.topMargin = dp(12);
+        card.addView(group, groupParams);
+        return new RowHolder(root, card, badge, title, detail, group, inherit, allow, deny);
     }
 
-    private RadioButton radio(String label) {
+    private RadioButton radio(String label, int checkedColor) {
         RadioButton button = new RadioButton(context);
         button.setId(View.generateViewId());
         button.setText(label);
-        button.setTextSize(14);
-        button.setLayoutParams(new RadioGroup.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        JellyfinTheme.styleSegment(context, button, checkedColor);
+        button.setLayoutParams(new RadioGroup.LayoutParams(0, dp(38), 1));
         return button;
     }
 
+    private String badgeText(String detail) {
+        if (detail.startsWith("Movie")) {
+            return "MOVIE";
+        }
+        if (detail.startsWith("Series")) {
+            return "SERIES";
+        }
+        if (detail.startsWith("Episode")) {
+            return "EP";
+        }
+        if (detail.startsWith("Audio")) {
+            return "AUDIO";
+        }
+        if (detail.startsWith("Video")) {
+            return "VIDEO";
+        }
+        return "MEDIA";
+    }
+
     private int dp(int value) {
-        return Math.round(value * context.getResources().getDisplayMetrics().density);
+        return JellyfinTheme.dp(context, value);
     }
 
     private static final class RowHolder {
         final LinearLayout root;
+        final LinearLayout card;
+        final TextView badge;
         final TextView title;
         final TextView detail;
         final RadioGroup group;
@@ -147,6 +220,8 @@ final class MediaAdapter extends BaseAdapter {
 
         RowHolder(
             LinearLayout root,
+            LinearLayout card,
+            TextView badge,
             TextView title,
             TextView detail,
             RadioGroup group,
@@ -155,6 +230,8 @@ final class MediaAdapter extends BaseAdapter {
             RadioButton deny
         ) {
             this.root = root;
+            this.card = card;
+            this.badge = badge;
             this.title = title;
             this.detail = detail;
             this.group = group;

@@ -12,7 +12,7 @@ validation is still pending.
 
 1. Install and validate the Family Policy plugin and guard first. Confirm the web
    editor works before adding another administrator client.
-2. Download `family-policy-android-v1-0.1.0-preview.1.apk` from
+2. Download `family-policy-android-v2-0.1.0-preview.2.apk` from
    [GitHub Releases](https://github.com/skyeatsbrad/jellyfin-family-policy/releases).
 3. Allow the browser or file manager used for the initial download to install
    unknown apps, then open the APK. Android always requires user confirmation.
@@ -31,6 +31,8 @@ signed by a different key.
 ## Use
 
 - Select a non-administrator Jellyfin user.
+- Use the Jellyfin-inspired dark dashboard to review server and guard health,
+  household profiles, default access, and title-specific exceptions.
 - Choose a rating preset, including PG / TV-PG or lower, or remove the default
   rating ceiling while retaining explicit denies and advanced rules.
 - Search or page through the library and set each title to **Inherit**, **Allow**,

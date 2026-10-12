@@ -19,7 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class JellyfinClient {
-    public static final String VERSION = "0.1.0-preview.1";
+    public static final String VERSION = "0.1.0-preview.2";
     private static final int CONNECT_TIMEOUT_MILLIS = 15_000;
     private static final int READ_TIMEOUT_MILLIS = 30_000;
 
