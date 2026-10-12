@@ -36,6 +36,34 @@ jobs:
         with:
           name: tests-${{ matrix.os }}
           path: tests/**/TestResults/*.trx
+
+  android:
+    name: Android unit, lint and APK
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - name: Install Android SDK 36
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Unit tests, lint and APK
+        run: |
+          chmod +x android/gradlew
+          android/gradlew -p android --no-daemon \
+            testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: family-policy-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
   integration:
     name: Native acceptance Jellyfin ${{ matrix.server.version }}
     timeout-minutes: 15

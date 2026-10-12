@@ -10,10 +10,14 @@ viewing hours, and a phone-friendly full-library access matrix to Jellyfin. Star
 with “PG or lower”, then allow unrated soccer, a franchise you trust, workout
 videos before normal viewing hours, or a direct per-title exception.
 
+An optional native Android administrator app provides the same rating and per-title
+controls without opening the Jellyfin dashboard in a mobile browser.
+
 **Experimental preview.** Native-server and browser acceptance tests passed on
 unmodified Jellyfin 10.11.11, 12.1 and 12.2 against disposable data. The 10.11.11
 result uses the net9.0 backport target on Windows x64. Real Apple TV/iPhone
-household validation is still pending.
+household validation and physical Android-phone validation are still pending. The
+Android administrator app has passed API 36 emulator validation.
 Read [installation](docs/installation.md) and [security boundaries](SECURITY.md)
 before a staging pilot. This is a community project, not an official Jellyfin plugin.
 
@@ -48,6 +52,20 @@ The matrix pages through the native Jellyfin catalog and provides Inherit, Allow
 and Deny per managed account. Inherit keeps every rating, schedule, category,
 franchise and compound rule intact. Matrix title IDs are packed into bounded
 rules, and multi-account saves use one revision-checked store commit.
+
+## Native Android administrator app
+
+The signed APK supports Android 8.0 and later. It authenticates directly to
+Jellyfin with an administrator account, stores only an Android-Keystore-encrypted
+access token, and provides native user, rating, title, search, pagination, save,
+conflict and restoration workflows.
+
+The app checks GitHub releases daily and on demand. APK updates require a newer
+version code, an HTTPS GitHub asset, the expected filename and size, and an exact
+GitHub-provided SHA-256 digest. Android still requires the user to approve the
+installation and, initially, allow Family Policy to install unknown apps.
+
+See the [Android installation, security and update guide](docs/android.md).
 
 ## How it works
 
@@ -85,6 +103,13 @@ dotnet restore src/FamilyPolicy.Guard/FamilyPolicy.Guard.csproj --locked-mode
 dotnet build src/FamilyPolicy.Guard/FamilyPolicy.Guard.csproj -c Release --no-restore
 ```
 
+The Android app requires Java 17 and Android SDK 36:
+
+```sh
+./android/gradlew -p android --no-daemon \
+  testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+```
+
 [Native integration and browser tests](docs/testing.md) generate their own media
 and synthetic accounts. [Development plan](DEVELOPMENT-PLAN.md),
 [architecture decisions](docs/decisions/0001-enforcement-and-label-provenance.md),
@@ -95,15 +120,19 @@ and synthetic accounts. [Development plan](DEVELOPMENT-PLAN.md),
 - Implemented: policy core, parent-only API, PG preset/advanced rule editor,
   responsive paginated library matrix, atomic multi-account title exceptions,
   confirmed labels, preview, native content enforcement, schedule filter,
-  independent guard, original-policy restoration and bounded revision audit.
+  independent guard, original-policy restoration, bounded revision audit and a
+  native Android administrator app with verified GitHub-hosted APK updates.
 - Tested locally: 28 core behavioral cases; Jellyfin 10.11.11, 12.1 and 12.2;
   two synthetic child identities; native file/HLS delivery; series/episode precedence;
   native timed file cutoff; guard recovery; real Chromium editor and matrix with
   the native API (ApiClient compatibility shim), including stale-revision draft
   preservation. The net9 build also passed in the installed Jellyfin 10.11.11
-  web shell at a 390x844 viewport with contained horizontal matrix scrolling.
-- Pending: real phone/TV child-device pilots, broader route/security review, Seerr
-  integration, provider rematching and large-library performance measurements.
+  web shell at a 390x844 viewport with contained horizontal matrix scrolling. The
+  native Android app passed API 36 emulator login, policy, conflict, restoration,
+  update-verification and package-installer handoff tests.
+- Pending: real phone/TV child-device pilots, a physical Android administrator
+  pilot, broader route/security review, Seerr integration, provider rematching and
+  large-library performance measurements.
 
 The public repository is a reviewable preview; it does not advertise production
 readiness or untested compatibility. See [release notes](CHANGELOG.md).

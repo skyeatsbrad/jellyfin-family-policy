@@ -12,7 +12,14 @@
 - Native browsing tags, current-policy playback filter, ongoing-response cutoff,
   attempted client Stop, independent health guard and captured-policy restoration.
 - Generated-media/native-API/HLS/browser/recovery acceptance harness and pinned CI.
+- Native Android administrator app for user selection, rating presets, paginated
+  title Inherit/Allow/Deny controls, atomic saves, conflict handling and restoration.
+- Android Keystore AES-GCM session storage with passwords never retained, backup
+  exclusion, normal platform TLS validation and an explicit cleartext warning.
+- Daily/manual GitHub APK updates with version, filename, HTTPS, size and SHA-256
+  verification plus private-provider handoff to Android's package installer.
 
 The net9 backport passed an installed Jellyfin 10.11.11 web-shell pilot at a
-390x844 viewport. Experimental: real household devices, broader route matrix,
+390x844 viewport. The Android app passed API 36 emulator workflows and verified
+installer handoff. Experimental: physical household devices, broader route matrix,
 large-library behavior, Seerr integration and stable provider rematching are pending.

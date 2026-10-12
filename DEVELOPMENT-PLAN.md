@@ -56,13 +56,13 @@ server binaries as part of the plugin; server runtime dependencies stay external
 7. On failure restore native PG/unrated restrictions before removing the fork.
 
 Actual household names, account IDs, server addresses and credentials stay in
-private operational records. Public publishing is a separate action; no remote
-public fork has been created during feasibility work.
+private operational records. The public fork contains only reusable source,
+synthetic fixtures and sanitized validation evidence.
 
 ## Immediate next work
 
-Implement the independent policy core and its behavioral tests, then parent-only
-API authorization. Do not promote the feasibility spike to production code.
+Complete physical-device household pilots, expand route/replacement/performance
+coverage and keep release claims aligned with executed evidence.
 
 ## Implementation evidence — 2026-10-07
 
@@ -75,3 +75,13 @@ Remaining production gates: installed web-shell/device pilot, expanded route and
 metadata-replacement matrix, large-library measurements and independently
 supervised target deployment. Seerr/provider rematching remains unimplemented.
 Public publication is now authorized; do not advertise production readiness.
+
+## Native Android administrator companion — 2026-10-12
+
+The native Android client under android/ implements administrator login, encrypted
+session restoration, user/rating/title controls, atomic revision-checked saves,
+native-policy restoration and GitHub-hosted verified APK updates. Unit/lint/build
+gates pass, and API 36 emulator validation covered administrator enforcement,
+draft retention, pagination/search, conflict and guard failures, digest rejection,
+provider access and Android package-installer handoff. Physical-phone validation
+remains pending.

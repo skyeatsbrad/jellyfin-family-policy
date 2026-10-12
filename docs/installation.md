@@ -32,6 +32,10 @@ The guard needs administrator privileges because the native user-policy API
 8. Preview decisions, apply, and test allowed/blocked native playback as the child.
    Confirm device accounts are not administrator sessions.
 
+Administrators who prefer native phone controls can then install the optional
+[Android administrator app](android.md). It uses the same API and does not replace
+the plugin, guard or child-device playback checks.
+
 The preview requires the guard's five-second lease for managed playback. After
 three failed heartbeat attempts, the guard tries to disable each explicitly
 configured non-administrator account through native Jellyfin APIs. It does not

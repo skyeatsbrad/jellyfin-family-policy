@@ -11,3 +11,10 @@ __pycache__/
 *.pyc
 integration-results.json
 dist/
+
+android/.gradle/
+android/local.properties
+android/**/build/
+android/**/*.jks
+android/**/*.keystore
+android/keystore.properties

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="navy">#17324D</color>
+    <color name="navy_dark">#10243A</color>
+    <color name="accent">#00A4DC</color>
+    <color name="icon_background">#17324D</color>
+</resources>
